@@ -21,7 +21,7 @@ class Solver:
         self.loss_func = tf.keras.losses.MeanSquaredError()
 
         # set percentile thresh
-        self.percentile = 50
+        self.percentile = 75
 
         # show network architecrute
         # enable GPU
