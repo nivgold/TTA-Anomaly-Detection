@@ -1,5 +1,5 @@
 from tensorflow import keras
-
+import os
 
 def get_model(input_shape=231, latent_dim=16, intermediate_dim=64):
     inputs = keras.Input(shape=(input_shape, ))
@@ -11,4 +11,4 @@ def get_model(input_shape=231, latent_dim=16, intermediate_dim=64):
     model.compile(optimizer="adam", loss="mean_squared_error")
     return model
 
-print('hell')
+print(os.getcwd())

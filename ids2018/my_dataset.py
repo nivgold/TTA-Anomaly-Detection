@@ -59,7 +59,7 @@ class IDS2018Dataset:
     def __init__(self, data_dir_path, from_disk=False):
 
         if from_disk:
-            path = '/home/nivgold/ids18_out/ids18_4tta'
+            path = './ids2018_out/ids2018_4tta'
             # loading from files
             self.train_features = pd.read_pickle(path+"/train_features.pkl")
             self.train_labels = pd.read_pickle(path+"/train_labels.pkl")
@@ -233,7 +233,7 @@ class IDS2018Dataset:
     def save_attributes_to_disk(self):
         print('saving attributes...')
 
-        path = '/home/nivgold/ids18_out/ids18_4tta'
+        path = './ids2018_out/ids2018_4tta'
 
         # save train
         pd.to_pickle(self.train_features, path+"/train_features.pkl")
