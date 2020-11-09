@@ -1,7 +1,6 @@
-import tensorflow as tf
 import numpy as np
 
-from autoencdoer_model import *
+from ids2017.autoencdoer_model import *
 
 
 class Solver:
@@ -21,7 +20,7 @@ class Solver:
         self.loss_func = tf.keras.losses.MeanSquaredError()
 
         # set percentile thresh
-        self.percentile = 75
+        self.percentile = 70
 
         # show network architecrute
         # enable GPU

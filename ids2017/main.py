@@ -1,8 +1,6 @@
-import os
-import pandas as pd
-import my_dataset as md
-from solver import Solver
-from test import get_execute_time
+from ids2017 import my_dataset as md
+from ids2017.solver import Solver
+from ids2017.test import get_execute_time
 import time
 
 

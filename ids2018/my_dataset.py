@@ -55,11 +55,11 @@ def train_test_split(full_df, train_ratio=0.7):
     return train_df, test_df
 
 
-class IDS2017Dataset:
-    def __init__(self, data_dir_path, full_df_input=None, from_disk=False):
+class IDS2018Dataset:
+    def __init__(self, data_dir_path, from_disk=False):
 
         if from_disk:
-            path = '/home/nivgold/ids17_4tta'
+            path = '/home/nivgold/ids18_out/ids18_4tta'
             # loading from files
             self.train_features = pd.read_pickle(path+"/train_features.pkl")
             self.train_labels = pd.read_pickle(path+"/train_labels.pkl")
@@ -70,22 +70,25 @@ class IDS2017Dataset:
             self.tta_features = list(np.load(path+"/tta_features.npy"))
             self.tta_labels = list(np.load(path+"/tta_labels.npy"))
         else:
-            if full_df_input is None:
-                df_list = []
-                for file_name in os.listdir(data_dir_path):
-                    if file_name.endswith('.csv'):
-                        print(f'Openning {file_name}')
-                        data_path = os.path.join(data_dir_path, file_name)
-                        df = pd.read_csv(data_path, encoding='cp1252')
-                        df = df.dropna()
-                        df_list.append(self.preprocessing(df))
+            # df_list = []
+            # for file_name in os.listdir(data_dir_path):
+            #     if file_name.endswith('.csv'):
+            #         print(f'Openning {file_name}')
+            #         data_path = os.path.join(data_dir_path, file_name)
+            #         df = pd.read_csv(data_path, encoding='cp1252')
+            #         df = df.dropna()
+            #         df_list.append(self.preprocessing(df))
+            #
+            # # concat rows
+            # full_df = pd.concat(df_list, axis=0)
+            # full_df = reduce_mem_usage(full_df)
 
-                # concat rows
-                full_df = pd.concat(df_list, axis=0)
-                full_df = reduce_mem_usage(full_df)
-
-            else:
-                full_df = full_df_input
+            # trying opening only the 3.3G file
+            print(f'Openning {data_dir_path}')
+            full_df = pd.read_csv(data_dir_path)
+            full_df = full_df.dropna()
+            full_df = self.preprocessing(full_df)
+            full_df = reduce_mem_usage(full_df)
 
             self.full_df = full_df
 
@@ -113,6 +116,7 @@ class IDS2017Dataset:
             tta_labels = []
             tta_features = []
 
+            # making the TTA data
             for index in test_norm_df.index:
                 index = int(index)
                 # take 4-before current index
@@ -136,6 +140,8 @@ class IDS2017Dataset:
             # saving the attributes to disk
             self.save_attributes_to_disk()
 
+
+
     def preprocessing(self, data):
 
         def _normalize_columns(df):
@@ -151,47 +157,43 @@ class IDS2017Dataset:
             # except Exception as e:
             #     df[' Timestamp'] = df[' Timestamp'].apply(lambda x: datetime.strptime(x, '%m/%d/%Y %H:%M:%S'))
 
-            df[' Label'] = np.where(df[' Label'] == 'BENIGN', 0, 1)
+            target_col = 'Label'
 
-            desired_cols = [' Flow Duration',
-                            ' Total Fwd Packets', ' Total Backward Packets',
-                            'Total Length of Fwd Packets', ' Total Length of Bwd Packets',
-                            ' Fwd Packet Length Max', ' Fwd Packet Length Min',
-                            ' Fwd Packet Length Mean', ' Fwd Packet Length Std',
-                            'Bwd Packet Length Max', ' Bwd Packet Length Min',
-                            ' Bwd Packet Length Mean', ' Bwd Packet Length Std', 'Flow Bytes/s',
-                            ' Flow Packets/s', ' Flow IAT Mean', ' Flow IAT Std', ' Flow IAT Max',
-                            ' Flow IAT Min', 'Fwd IAT Total', ' Fwd IAT Mean', ' Fwd IAT Std',
-                            ' Fwd IAT Max', ' Fwd IAT Min', 'Bwd IAT Total', ' Bwd IAT Mean',
-                            ' Bwd IAT Std', ' Bwd IAT Max', ' Bwd IAT Min', 'Fwd PSH Flags',
-                            ' Bwd PSH Flags', ' Fwd URG Flags', ' Bwd URG Flags',
-                            ' Fwd Header Length', ' Bwd Header Length', 'Fwd Packets/s',
-                            ' Bwd Packets/s', ' Min Packet Length', ' Max Packet Length',
-                            ' Packet Length Mean', ' Packet Length Std', ' Packet Length Variance',
-                            'FIN Flag Count', ' SYN Flag Count', ' RST Flag Count',
-                            ' PSH Flag Count', ' ACK Flag Count', ' URG Flag Count',
-                            ' CWE Flag Count', ' ECE Flag Count', ' Down/Up Ratio',
-                            ' Average Packet Size', ' Avg Fwd Segment Size',
-                            ' Avg Bwd Segment Size', ' Fwd Header Length.1', 'Fwd Avg Bytes/Bulk',
-                            ' Fwd Avg Packets/Bulk', ' Fwd Avg Bulk Rate', ' Bwd Avg Bytes/Bulk',
-                            ' Bwd Avg Packets/Bulk', 'Bwd Avg Bulk Rate', 'Subflow Fwd Packets',
-                            ' Subflow Fwd Bytes', ' Subflow Bwd Packets', ' Subflow Bwd Bytes',
-                            'Init_Win_bytes_forward', ' Init_Win_bytes_backward',
-                            ' act_data_pkt_fwd', ' min_seg_size_forward', 'Active Mean',
-                            ' Active Std', ' Active Max', ' Active Min', 'Idle Mean', ' Idle Std',
-                            ' Idle Max', ' Idle Min']
+            df[target_col] = np.where(df[target_col] == 'Benign', 0, 1)
 
-            target_col = ' Label'
+            desired_cols = ['Flow Duration', 'Tot Fwd Pkts',
+                               'Tot Bwd Pkts', 'TotLen Fwd Pkts', 'TotLen Bwd Pkts', 'Fwd Pkt Len Max',
+                               'Fwd Pkt Len Min', 'Fwd Pkt Len Mean', 'Fwd Pkt Len Std',
+                               'Bwd Pkt Len Max', 'Bwd Pkt Len Min', 'Bwd Pkt Len Mean',
+                               'Bwd Pkt Len Std', 'Flow Byts/s', 'Flow Pkts/s', 'Flow IAT Mean',
+                               'Flow IAT Std', 'Flow IAT Max', 'Flow IAT Min', 'Fwd IAT Tot',
+                               'Fwd IAT Mean', 'Fwd IAT Std', 'Fwd IAT Max', 'Fwd IAT Min',
+                               'Bwd IAT Tot', 'Bwd IAT Mean', 'Bwd IAT Std', 'Bwd IAT Max',
+                               'Bwd IAT Min', 'Fwd PSH Flags', 'Bwd PSH Flags', 'Fwd URG Flags',
+                               'Bwd URG Flags', 'Fwd Header Len', 'Bwd Header Len', 'Fwd Pkts/s',
+                               'Bwd Pkts/s', 'Pkt Len Min', 'Pkt Len Max', 'Pkt Len Mean',
+                               'Pkt Len Std', 'Pkt Len Var', 'FIN Flag Cnt', 'SYN Flag Cnt',
+                               'RST Flag Cnt', 'PSH Flag Cnt', 'ACK Flag Cnt', 'URG Flag Cnt',
+                               'CWE Flag Count', 'ECE Flag Cnt', 'Down/Up Ratio', 'Pkt Size Avg',
+                               'Fwd Seg Size Avg', 'Bwd Seg Size Avg', 'Fwd Byts/b Avg',
+                               'Fwd Pkts/b Avg', 'Fwd Blk Rate Avg', 'Bwd Byts/b Avg',
+                               'Bwd Pkts/b Avg', 'Bwd Blk Rate Avg', 'Subflow Fwd Pkts',
+                               'Subflow Fwd Byts', 'Subflow Bwd Pkts', 'Subflow Bwd Byts',
+                               'Init Fwd Win Byts', 'Init Bwd Win Byts', 'Fwd Act Data Pkts',
+                               'Fwd Seg Size Min', 'Active Mean', 'Active Std', 'Active Max',
+                               'Active Min', 'Idle Mean', 'Idle Std', 'Idle Max', 'Idle Min']
+
 
             df = df[desired_cols + [target_col]]
 
+            # df['Flow Duration'] = df['Flow Duration'].astype(np.float64)
+
             def label_func(label_vector):
-                # print(label_vector.unique())
                 label_unique = label_vector.unique()
                 if len(label_unique) == 1 and (0 in label_unique):
-                    label_col = pd.Series(0, index=['Label'], dtype=np.int16)
+                    label_col = pd.Series(0, index=[target_col], dtype=np.int16)
                 else:
-                    label_col = pd.Series(1, index=['Label'], dtype=np.int16)
+                    label_col = pd.Series(1, index=[target_col], dtype=np.int16)
                 return label_col
 
             agg_dict = dict(zip(desired_cols, [[np.max, np.min, np.std] for i in range(len(desired_cols))]))
@@ -200,15 +202,25 @@ class IDS2017Dataset:
             # sliding window of 5 ticks
             rolled = df.rolling(5).agg(agg_dict)
 
+            # # Trying to aggregate by Flow ID
+            # rolled_list = []
+            # grouped = df.groupby(by='Flow ID')
+            # for flow_id, flow_id_df in grouped:
+            #     print(flow_id_df)
+            #     current_rolled = flow_id_df.rolling(5).agg(agg_dict)
+            #     rolled_list.append(current_rolled)
+            # # concatenate all the rolls to a total rolled
+            # rolled = pd.concat(rolled_list, axis=0)
+
             # fixing columns names
             new_columns = list(rolled.columns)
             new_columns = [(i + ' - ' + j.upper()).strip() for i, j in new_columns]
-            new_columns[-1] = 'Label'
+            new_columns[-1] = target_col
             rolled.columns = new_columns
 
-            # fill all the nans
+            # TODO: maybe not the best idea to fill all of the nan with mean
             rolled = rolled.fillna(rolled.mean())
-            rolled['Label'] = rolled['Label'].astype(np.int16)
+            rolled[target_col] = rolled[target_col].astype(np.int16)
 
             return rolled
 
@@ -221,7 +233,7 @@ class IDS2017Dataset:
     def save_attributes_to_disk(self):
         print('saving attributes...')
 
-        path = '/home/nivgold/ids17_4tta'
+        path = '/home/nivgold/ids18_out/ids18_4tta'
 
         # save train
         pd.to_pickle(self.train_features, path+"/train_features.pkl")
@@ -256,19 +268,19 @@ def test_pack_features_vector(features, labels, tta_features, tta_labels):
   return features, labels, tta_features, tta_labels
 
 
-def get_dataset(data_path, batch_size, full_df=None, from_disk=True):
+def get_dataset(data_path, batch_size, from_disk=True):
     # load the features and the labels and convert them to tf.Dataset (train and test)
-    ids17 = IDS2017Dataset(data_path, full_df_input=full_df, from_disk=from_disk)
+    ids18 = IDS2018Dataset(data_path, from_disk=from_disk)
 
     # train_ds = df_to_dataset(data=ids17.train_features, labels=ids17.train_labels, shuffle=shuffle, batch_size=batch_size).map(pack_features_vector)
-    train_ds = (tf.data.Dataset.from_tensor_slices((dict(ids17.train_features), ids17.train_labels))
+    train_ds = (tf.data.Dataset.from_tensor_slices((dict(ids18.train_features), ids18.train_labels))
                 .cache()
                 .batch(batch_size)
                 .map(train_pack_features_vector))
 
     # test_ds = df_to_dataset(data=ids17.test_features, labels=ids17.test_labels, shuffle=shuffle, batch_size=batch_size).map(pack_features_vector)
     test_ds = (tf.data.Dataset.from_tensor_slices(
-        (dict(ids17.test_features), ids17.test_labels, ids17.tta_features, ids17.tta_labels))
+        (dict(ids18.test_features), ids18.test_labels, ids18.tta_features, ids18.tta_labels))
                .cache()
                .batch(batch_size)
                .map(test_pack_features_vector))
