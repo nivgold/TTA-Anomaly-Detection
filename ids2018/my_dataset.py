@@ -47,10 +47,10 @@ def reduce_mem_usage(df):
     return df
 
 
-def train_test_split(full_df, train_ratio=0.7):
-    train_last_idx = int(len(full_df) * train_ratio)
-    train_df = full_df.iloc[:train_last_idx, :]
-    test_df = full_df.iloc[train_last_idx:, :]
+def train_test_split(full_df, test_ratio=0.3):
+    test_last_idx = int(len(full_df) * test_ratio)
+    train_df = full_df.iloc[test_last_idx:, :]
+    test_df = full_df.iloc[:test_last_idx, :]
 
     return train_df, test_df
 
@@ -59,7 +59,8 @@ class IDS2018Dataset:
     def __init__(self, data_dir_path, from_disk=False):
 
         if from_disk:
-            path = './ids2018_out/ids2018_4tta'
+
+            path = '/home/nivgold/TTA-Anomaly-Detection/ids2018/ids2018_out/ids2018_4tta_flow_id_rolling'
             # loading from files
             self.train_features = pd.read_pickle(path+"/train_features.pkl")
             self.train_labels = pd.read_pickle(path+"/train_labels.pkl")
@@ -69,45 +70,33 @@ class IDS2018Dataset:
 
             self.tta_features = list(np.load(path+"/tta_features.npy"))
             self.tta_labels = list(np.load(path+"/tta_labels.npy"))
+
+            print(f'number of train samples: {len(self.train_labels)}')
+            print(f'number of test samples: {len(self.test_labels)}')
+
         else:
-            # df_list = []
-            # for file_name in os.listdir(data_dir_path):
-            #     if file_name.endswith('.csv'):
-            #         print(f'Openning {file_name}')
-            #         data_path = os.path.join(data_dir_path, file_name)
-            #         df = pd.read_csv(data_path, encoding='cp1252')
-            #         df = df.dropna()
-            #         df_list.append(self.preprocessing(df))
-            #
-            # # concat rows
-            # full_df = pd.concat(df_list, axis=0)
-            # full_df = reduce_mem_usage(full_df)
 
             # trying opening only the 3.3G file
             print(f'Openning {data_dir_path}')
-            full_df = pd.read_csv(data_dir_path)
-            full_df = full_df.dropna()
+            full_df = pd.read_csv(data_dir_path, nrows=3000000)
+            # full_df = full_df.dropna()
             full_df = self.preprocessing(full_df)
             full_df = reduce_mem_usage(full_df)
 
-            self.full_df = full_df
-
-            # compute anomlay percentage
-            label_col = full_df['Label']
-            labels_proportions = label_col.value_counts()
-            self.anomaly_percentage = labels_proportions[1] / labels_proportions.sum()
-
-            train_df, test_df = train_test_split(full_df, 0.7)
+            train_df, test_df = train_test_split(full_df, 0.3)
 
             # TRAIN
 
             # taking every 5th sample
             train_df = train_df[5::5]
 
-            # filter out malicous aggregations (with label equal to 1)
+            # filter out malicious aggregations (with label equal to 1)
+            print(f'number of train samples: {len(train_df[train_df.Label == 0])}')
             train_df = train_df[train_df['Label'] == 0]
             self.train_labels = train_df['Label']
             self.train_features = train_df.drop(columns=['Label'], axis=1)
+
+            print(self.train_features)
 
             # TEST
             test_df = test_df.reset_index(drop=True)
@@ -145,10 +134,16 @@ class IDS2018Dataset:
     def preprocessing(self, data):
 
         def _normalize_columns(df):
+            df_labels = df['Label']
+            df_features = df.drop('Label', axis=1)
+            features = df_features.columns
+
             # min-max normalization
             scaler = MinMaxScaler()
-            df[df.columns[:-1]] = scaler.fit_transform(df[df.columns[:-1]])
-            return df
+            df_features_scaled = scaler.fit_transform(df_features.values)
+            df_features_scaled = pd.DataFrame(df_features_scaled)
+            df_features_scaled.columns = features
+            return pd.concat([df_features_scaled, df_labels], axis=1)
 
         def _agg_df(df):
             # # converting the `Timestamp` column to be datetime dtype
@@ -184,39 +179,56 @@ class IDS2018Dataset:
                                'Active Min', 'Idle Mean', 'Idle Std', 'Idle Max', 'Idle Min']
 
 
-            df = df[desired_cols + [target_col]]
+            # df = df[desired_cols + [target_col]]
+            df_features = df[['Flow ID'] + desired_cols]
+            df_label = df[target_col]
 
-            # df['Flow Duration'] = df['Flow Duration'].astype(np.float64)
 
-            def label_func(label_vector):
-                label_unique = label_vector.unique()
-                if len(label_unique) == 1 and (0 in label_unique):
-                    label_col = pd.Series(0, index=[target_col], dtype=np.int16)
-                else:
-                    label_col = pd.Series(1, index=[target_col], dtype=np.int16)
-                return label_col
+            # # sliding window of 5 ticks
+            # rolled_max = df_features.rolling(5).max()
+            # rolled_max.columns = [f'MAX - {column}' for column in list(rolled_max.columns)]
+            #
+            # rolled_min = df_features.rolling(5).min()
+            # rolled_min.columns = [f'MIN - {column}' for column in list(rolled_min.columns)]
+            #
+            # rolled_std = df_features.rolling(5).std()
+            # rolled_std.columns = [f'STD - {column}' for column in list(rolled_std.columns)]
+            #
+            # rolled_labels = df_label.rolling(5).max()
+            #
+            # print('concatenating to create full rolled dataframe')
+            # rolled = pd.concat([rolled_max, rolled_min, rolled_std, rolled_labels], axis=1)
 
-            agg_dict = dict(zip(desired_cols, [[np.max, np.min, np.std] for i in range(len(desired_cols))]))
-            agg_dict[target_col] = label_func
+            print("start group by flow id")
+            # Trying to aggregate by Flow ID
+            try:
+                rolled_list = []
+                grouped = df.groupby(by='Flow ID')
+                for i, grouped_data in enumerate(grouped):
+                    flow_id, flow_id_df = grouped_data
+                    if i % 1000 == 0:
+                        print(i)
+                    # print(f'{flow_id}: len: {len(flow_id_df)}')
+                    rolled_max = flow_id_df.rolling(5).max()
+                    rolled_max.columns = [f'MAX - {column}' for column in list(rolled_max.columns)]
 
-            # sliding window of 5 ticks
-            rolled = df.rolling(5).agg(agg_dict)
+                    rolled_min = flow_id_df.rolling(5).min()
+                    rolled_min.columns = [f'MIN - {column}' for column in list(rolled_min.columns)]
 
-            # # Trying to aggregate by Flow ID
-            # rolled_list = []
-            # grouped = df.groupby(by='Flow ID')
-            # for flow_id, flow_id_df in grouped:
-            #     print(flow_id_df)
-            #     current_rolled = flow_id_df.rolling(5).agg(agg_dict)
-            #     rolled_list.append(current_rolled)
-            # # concatenate all the rolls to a total rolled
-            # rolled = pd.concat(rolled_list, axis=0)
+                    rolled_std = flow_id_df.rolling(5).std()
+                    rolled_std.columns = [f'STD - {column}' for column in list(rolled_std.columns)]
 
-            # fixing columns names
-            new_columns = list(rolled.columns)
-            new_columns = [(i + ' - ' + j.upper()).strip() for i, j in new_columns]
-            new_columns[-1] = target_col
-            rolled.columns = new_columns
+                    rolled_labels = flow_id_df.rolling(5).max()
+
+                    # print(rolled_max.shape, rolled_std.shape, rolled_min.shape, rolled_labels.shape)
+                    current_rolled = pd.concat([rolled_max, rolled_min, rolled_std, rolled_labels], axis=1)
+                    rolled_list.append(current_rolled)
+            except Exception as e:
+                print(e)
+
+            # concatenate all the rolls to a total rolled
+            print('concatenating to create full rolled dataframe')
+            rolled = pd.concat(rolled_list, axis=0)
 
             # TODO: maybe not the best idea to fill all of the nan with mean
             rolled = rolled.fillna(rolled.mean())
@@ -225,15 +237,19 @@ class IDS2018Dataset:
             return rolled
 
         # ------ start of the preprocessing func ------
+        print('aggregating...')
         data_df = _agg_df(data)
+        print('normalizing...')
         data_df = _normalize_columns(data_df)
+
+        print('finished preprocessing')
 
         return data_df
 
     def save_attributes_to_disk(self):
         print('saving attributes...')
 
-        path = './ids2018_out/ids2018_4tta'
+        path = '/home/nivgold/TTA-Anomaly-Detection/ids2018/ids2018_out/ids2018_4tta_flow_id_rolling'
 
         # save train
         pd.to_pickle(self.train_features, path+"/train_features.pkl")

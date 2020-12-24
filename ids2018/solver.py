@@ -1,17 +1,17 @@
 import numpy as np
 
-from ids2017.autoencdoer_model import *
+from autoencdoer_model import *
 
 
 class Solver:
-    def __init__(self, train_ds, test_ds, epochs=32):
+    def __init__(self, train_ds, test_ds, epochs=32, features_dim=231):
         self.train_ds = train_ds
         self.test_ds = test_ds
         self.num_epochs = epochs
 
         # using the SimpleAE model
-        self.encoder = Encoder()
-        self.decoder = Decoder()
+        self.encoder = Encoder(input_shape=features_dim)
+        self.decoder = Decoder(original_dim=features_dim)
 
         # optimizer
         self.optimizer = tf.keras.optimizers.Adam()
