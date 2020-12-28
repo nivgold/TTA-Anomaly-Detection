@@ -59,17 +59,15 @@ class IDS2018Dataset:
     def __init__(self, data_dir_path, from_disk=False):
 
         if from_disk:
+            print("Loading pkls...")
 
-            path = '/home/nivgold/TTA-Anomaly-Detection/ids2018/ids2018_out/pkls'
+            path = '/home/nivgold/TTA-Anomaly-Detection/oversampling/out/ids2018_out/pkls'
             # loading from files
             self.train_features = pd.read_pickle(path+"/train_features.pkl")
             self.train_labels = pd.read_pickle(path+"/train_labels.pkl")
 
             self.test_features = pd.read_pickle(path+"/test_features.pkl")
             self.test_labels = pd.read_pickle(path+"/test_labels.pkl")
-
-            print(f'number of train samples: {len(self.train_labels)}')
-            print(f'number of test samples: {len(self.test_labels)}')
 
         else:
 
@@ -154,6 +152,10 @@ class IDS2018Dataset:
 
             df = df[desired_cols + [target_col]]
 
+            # replacing inf values with column max
+            df = df.replace([np.inf], np.nan)
+            df = df.fillna(df.max())
+
             return df
 
 
@@ -222,7 +224,7 @@ class IDS2018Dataset:
     def save_attributes_to_disk(self):
         print('saving attributes...')
 
-        path = '/home/nivgold/TTA-Anomaly-Detection/ids2018/ids2018_out/pkls'
+        path = '/home/nivgold/TTA-Anomaly-Detection/oversampling/out/ids2018_out/pkls'
 
         # save train
         pd.to_pickle(self.train_features, path+"/train_features.pkl")

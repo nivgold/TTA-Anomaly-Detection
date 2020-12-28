@@ -59,7 +59,9 @@ class IDS2017Dataset:
     def __init__(self, data_dir_path, from_disk=False):
 
         if from_disk:
-            path = '/home/nivgold/TTA-Anomaly-Detection/ids2017/ids2017_out/pkls'
+            print("Loading pkls...")
+
+            path = '/home/nivgold/TTA-Anomaly-Detection/oversampling/out/ids2017_out/pkls'
             # loading from files
             self.train_features = pd.read_pickle(path+"/train_features.pkl")
             self.train_labels = pd.read_pickle(path+"/train_labels.pkl")
@@ -101,7 +103,7 @@ class IDS2017Dataset:
             self.full_df = full_df
 
             # compute anomlay percentage
-            label_col = full_df['Label']
+            label_col = full_df[' Label']
             labels_proportions = label_col.value_counts()
             self.anomaly_percentage = labels_proportions[1] / labels_proportions.sum()
 
@@ -110,14 +112,14 @@ class IDS2017Dataset:
             # TRAIN
 
             # filter out malicious aggregations (with label equal to 1)
-            train_df = train_df[train_df['Label'] == 0]
-            self.train_labels = train_df['Label']
-            self.train_features = train_df.drop(columns=['Label'], axis=1)
+            train_df = train_df[train_df[' Label'] == 0]
+            self.train_labels = train_df[' Label']
+            self.train_features = train_df.drop(columns=[' Label'], axis=1)
 
             # TEST
 
-            self.test_labels = test_df['Label']
-            self.test_features = test_df.drop(columns=['Label'], axis=1)
+            self.test_labels = test_df[' Label']
+            self.test_features = test_df.drop(columns=[' Label'], axis=1)
 
             # saving the attributes to disk
             self.save_attributes_to_disk()
@@ -171,6 +173,10 @@ class IDS2017Dataset:
 
             df = df[desired_cols + [target_col]]
 
+            # replacing inf values with column max
+            df = df.replace([np.inf], np.nan)
+            df = df.fillna(df.max())
+
             return df
 
             # def label_func(label_vector):
@@ -211,15 +217,19 @@ class IDS2017Dataset:
             # return rolled
 
         # ------ start of the preprocessing func ------
+        print('aggregating...')
         data_df = _agg_df(data)
+        print('normalizing...')
         data_df = _normalize_columns(data_df)
+
+        print('finished preprocessing')
 
         return data_df
 
     def save_attributes_to_disk(self):
         print('saving attributes...')
 
-        path = '/home/nivgold/TTA-Anomaly-Detection/ids2017/ids2017_out/pkls'
+        path = '/home/nivgold/TTA-Anomaly-Detection/oversampling/out/ids2017_out/pkls'
 
         # save train
         pd.to_pickle(self.train_features, path+"/train_features.pkl")
@@ -256,7 +266,8 @@ def get_dataset(data_path, batch_size, from_disk=True):
     ids17 = IDS2017Dataset(data_path, from_disk=from_disk)
 
     # train_ds = df_to_dataset(data=ids17.train_features, labels=ids17.train_labels, shuffle=shuffle, batch_size=batch_size).map(pack_features_vector)
-    train_ds = (tf.data.Dataset.from_tensor_slices((dict(ids17.train_features), ids17.train_labels))
+    train_ds = (tf.data.Dataset.from_tensor_slices(
+        (dict(ids17.train_features), ids17.train_labels))
                 .cache()
                 .batch(batch_size)
                 .map(train_pack_features_vector))
