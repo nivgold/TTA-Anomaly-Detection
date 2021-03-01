@@ -1,7 +1,7 @@
 import numpy as np
 from imblearn.over_sampling import SMOTE
 from imblearn.over_sampling import BorderlineSMOTE
-
+from sklearn.neighbors import NearestNeighbors
 
 from autoencdoer_model import *
 
@@ -122,27 +122,58 @@ class Solver:
 
     def test_tta(self, method_name):
 
-        # TODO: decide the oversampling method
-        oversampling_method = self.get_oversampling_method(method_name)
-
         # loss function - with reduction equals to `NONE` in order to get the loss of every test example
         self.loss_func = tf.keras.losses.MeanSquaredError(reduction=tf.keras.losses.Reduction.NONE)
 
         # iterating through the train to calculate the loss of every train instance
         train_loss = []
+        X_list = []
         for step, (x_batch_train, y_batch_train) in enumerate(self.train_ds):
             loss = self.test_step(x_batch_train)
             train_loss.append(loss.numpy())
+            X_list.append(x_batch_train)
+
+        # adjusting X to be: ndarray of shape (num_dataset_samples, num_dataset_features)
+        X = np.concatenate(X_list, axis=0)
+
+        # decide the oversampling method
+        oversampling_method = self.get_oversampling_method(method_name)
+        NUM_OF_AUGMENTATIONS = 5
+
+        # if SMOTE is the augmentation method -> training KNN model with training samples
+        knn_model = NearestNeighbors(n_neighbors=NUM_OF_AUGMENTATIONS)
+        knn_model.fit(X)
 
         # iterating through the test to calculate the loss of every test instance
         test_loss = []
         test_labels = []
         for step, (x_batch_test, y_batch_test) in enumerate(self.test_ds):
+            # x_batch_test: ndarray of shape (batch_size, num_dataset_features)
+            # y_batch_test: ndarray of shape (batch_size,)
+
             reconstruction_loss = self.test_step(x_batch_test).numpy()
             test_labels.append(y_batch_test.numpy())
 
             # TODO: make batch samples using oversampling method, calculate predictions and final predication
-            # TODO: the tta_features_batch shape is: (32, num_of_tta, num_of_features)
+            # TODO: the tta_features_batch shape is: (batch_size, num_of_augmentations, num_dataset_features)
+
+            # neighbors_indices: ndarray of shape (batch_size, num_of_augmentations)
+            neighbors_indices = knn_model.kneighbors(x_batch_test)
+
+            # tta_features_batch: ndarray of shape (batch_size, num_dataset_features)
+            tta_features_batch =  X[neighbors_indices, :]
+
+            # calculating the tta samples reconstructions
+            tta_reconstruction = []
+            for tta_sample in tta_features_batch:
+                tta_reconstruction_loss = self.test_step(tta_sample).numpy()
+                tta_reconstruction.append(tta_reconstruction_loss)
+
+            # calculating the final loss - mean over primary sample and tta samples
+            for primary_loss, tta_loss in list(zip(reconstruction_loss, tta_reconstruction)):
+                combined_tta_loss = np.concatenate([[primary_loss], tta_loss])
+                test_loss.append(np.mean(combined_tta_loss))
+
             # # calculating the tta samples reconstructions
             # tta_reconstruction = []
             # for tta_sample in tta_features_batch:
