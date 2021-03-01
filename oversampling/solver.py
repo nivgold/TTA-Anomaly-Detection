@@ -139,10 +139,10 @@ class Solver:
         test_labels = []
         for step, (x_batch_test, y_batch_test) in enumerate(self.test_ds):
             reconstruction_loss = self.test_step(x_batch_test).numpy()
-            # test_loss.append(reconstruction_loss)
             test_labels.append(y_batch_test.numpy())
 
-            # TODO: make samples using oversampling method, calculate predictions and final predication
+            # TODO: make batch samples using oversampling method, calculate predictions and final predication
+            # TODO: the tta_features_batch shape is: (32, num_of_tta, num_of_features)
             # # calculating the tta samples reconstructions
             # tta_reconstruction = []
             # for tta_sample in tta_features_batch:

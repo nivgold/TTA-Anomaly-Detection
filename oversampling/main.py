@@ -9,7 +9,9 @@ def get_execute_time(start_time, end_time):
     print("{:0>2}:{:0>2}:{:05.2f}".format(int(hours), int(minutes), seconds))
 
 HOME_PATH = '/home/nivgold'
-EPOCHS = 300
+EPOCHS = 2
+IDS17_DIM = 77
+IDS18_DIM = 76
 
 # testing ids2018 dataset
 start_time = time.time()
@@ -33,7 +35,7 @@ get_execute_time(start_time, end_train_test)
 #                                      element_spec=(tf.TensorSpec(shape=(None, 231), dtype=tf.float64, name=None),
 #                                                    tf.TensorSpec(shape=(None,), dtype=tf.int16, name=None)))
 
-solver = Solver(ids18_train_ds, ids18_test_ds, epochs=EPOCHS, features_dim=228)
+solver = Solver(ids18_train_ds, ids18_test_ds, epochs=EPOCHS, features_dim=IDS18_DIM)
 
 # TRAINING
 start_time = time.time()
@@ -51,10 +53,10 @@ end_testing = time.time()
 print("---training finished after: ", end='')
 get_execute_time(start_time, end_testing)
 
-# TEST WITH TTA
-start_time = time.time()
-print("Start testing with TTA...")
-accuracy, precision, recall, f_score, auc = solver.test_tta()
-end_tta_testing = time.time()
-print("---training finished after: ")
-get_execute_time(start_time, end_tta_testing)
+# # TEST WITH TTA
+# start_time = time.time()
+# print("Start testing with TTA...")
+# accuracy, precision, recall, f_score, auc = solver.test_tta()
+# end_tta_testing = time.time()
+# print("---training finished after: ")
+# get_execute_time(start_time, end_tta_testing)
