@@ -127,14 +127,18 @@ class Solver:
 
         # iterating through the train to calculate the loss of every train instance
         train_loss = []
-        X_list = []
+        X_train_list = []
+        y_train_list = []
         for step, (x_batch_train, y_batch_train) in enumerate(self.train_ds):
             loss = self.test_step(x_batch_train)
             train_loss.append(loss.numpy())
-            X_list.append(x_batch_train)
+
+            X_train_list.append(x_batch_train)
+            y_train_list.append(y_batch_train)
 
         # adjusting X to be: ndarray of shape (num_dataset_samples, num_dataset_features)
-        X = np.concatenate(X_list, axis=0)
+        X_train = np.concatenate(X_train_list, axis=0)
+        y_train = np.concatenate(y_train_list, axis=0)
 
         # decide the oversampling method
         oversampling_method = self.get_oversampling_method(method_name)
@@ -142,7 +146,8 @@ class Solver:
 
         # if SMOTE is the augmentation method -> training KNN model with training samples
         knn_model = NearestNeighbors(n_neighbors=NUM_OF_AUGMENTATIONS)
-        knn_model.fit(X)
+        # TODO: very very slow
+        knn_model.fit(X_train)
 
         # iterating through the test to calculate the loss of every test instance
         test_loss = []
@@ -159,31 +164,40 @@ class Solver:
 
             # neighbors_indices: ndarray of shape (batch_size, num_of_augmentations)
             neighbors_indices = knn_model.kneighbors(x_batch_test)
+            neighbors_indices = np.squeeze(neighbors_indices)
 
             # tta_features_batch: ndarray of shape (batch_size, num_dataset_features)
-            tta_features_batch =  X[neighbors_indices, :]
+            neighbors_batch_features = X_train[neighbors_indices]
+            neighbors_batch_labels = y_train[neighbors_indices]
 
-            # calculating the tta samples reconstructions
             tta_reconstruction = []
-            for tta_sample in tta_features_batch:
-                tta_reconstruction_loss = self.test_step(tta_sample).numpy()
+            for neighbors_features, neighbors_labels in list(zip(neighbors_batch_features, neighbors_batch_labels)):
+                # TODO: dump the tta creation to a function
+                fake_tta_features = [tta_feature for tta_feature in neighbors_features] + [neighbors_features[-1] for i in range(NUM_OF_AUGMENTATIONS)]
+                fake_tta_labels = [1 for i in fake_tta_features]
+                tta_features_full = np.concatenate([neighbors_features, fake_tta_features])
+                tta_labels_full = np.concatenate([neighbors_labels, fake_tta_labels])
+
+                osmp_obj = oversampling_method(sampling_strategy='minority', k_neighbors=1)
+                X_res, y_res = osmp_obj.fit_resample(tta_features_full, tta_labels_full)
+
+                tta_features = X_res[-NUM_OF_AUGMENTATIONS:]
+
+                # making the test phase for the tta sample
+                tta_reconstruction_loss = self.test_step(tta_features).numpy()
                 tta_reconstruction.append(tta_reconstruction_loss)
 
-            # calculating the final loss - mean over primary sample and tta samples
-            for primary_loss, tta_loss in list(zip(reconstruction_loss, tta_reconstruction)):
-                combined_tta_loss = np.concatenate([[primary_loss], tta_loss])
-                test_loss.append(np.mean(combined_tta_loss))
 
             # # calculating the tta samples reconstructions
             # tta_reconstruction = []
             # for tta_sample in tta_features_batch:
             #     tta_reconstruction_loss = self.test_step(tta_sample).numpy()
             #     tta_reconstruction.append(tta_reconstruction_loss)
-            #
-            # # calculate the final loss - mean over primary sample and tta samples
-            # for primary_loss, tta_loss in list(zip(reconstruction_loss, tta_reconstruction)):
-            #     combined_tta_loss = np.concatenate([[primary_loss], tta_loss])
-            #     test_loss.append(np.mean(combined_tta_loss))
+
+            # calculating the final loss - mean over primary sample and tta samples
+            for primary_loss, tta_loss in list(zip(reconstruction_loss, tta_reconstruction)):
+                combined_tta_loss = np.concatenate([[primary_loss], tta_loss])
+                test_loss.append(np.mean(combined_tta_loss))
 
         train_loss = np.concatenate(train_loss, axis=0)
 
@@ -211,6 +225,9 @@ class Solver:
             recall, f_score, auc))
 
         return accuracy, precision, recall, f_score, auc
+
+    def get_oversampling_tta_sample(self):
+        pass
 
     @tf.function
     def test_step(self, inputs):
