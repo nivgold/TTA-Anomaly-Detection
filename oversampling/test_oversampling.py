@@ -59,11 +59,3 @@ for tta_features, tta_labels in list(zip(tta_batch_features, tta_batch_labels)):
     print(y_res[-5:])
 
     break
-
-#
-# sm = SMOTE(random_state=42, k_neighbors=1)
-# sample_features, sample_label = X_test.iloc[0:5].values, y_test.iloc[0:5].values
-# sample_label[-1]
-# print("Printing original sample:")
-# print(sample_label)
-# print()
