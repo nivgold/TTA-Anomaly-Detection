@@ -2,6 +2,10 @@ import numpy as np
 from imblearn.over_sampling import SMOTE
 from imblearn.over_sampling import BorderlineSMOTE
 from sklearn.neighbors import NearestNeighbors
+import tensorflow as tf
+
+import cudf, cuml
+from cuml.neighbors import NearestNeighbors as cuNearestNeighbors
 
 from autoencdoer_model import *
 
@@ -34,11 +38,11 @@ class Solver:
 
         # loss function
         self.loss_func = tf.keras.losses.MeanSquaredError()
-
         for epoch in range(self.num_epochs):
             epoch_loss_mean = tf.keras.metrics.Mean()
 
             for step, (x_batch_train, y_batch_train) in enumerate(self.train_ds):
+                print(f'Step: {step} in epoch {epoch}')
                 loss = self.train_step(x_batch_train)
 
                 # keep track of the metrics
@@ -144,10 +148,11 @@ class Solver:
         oversampling_method = self.get_oversampling_method(method_name)
         NUM_OF_AUGMENTATIONS = 5
 
-        # if SMOTE is the augmentation method -> training KNN model with training samples
-        knn_model = NearestNeighbors(n_neighbors=NUM_OF_AUGMENTATIONS)
-        # TODO: very very slow
-        knn_model.fit(X_train)
+        # if SMOTE is the augmentation method -> training KNN model with training samples (RAPIDS KNN IMPLEMENTATION)
+        X_rapids = cudf.DataFrame(X_train)
+        knn_model = cuNearestNeighbors(n_neighbors=NUM_OF_AUGMENTATIONS)
+
+        knn_model.fit(X_rapids)
 
         # iterating through the test to calculate the loss of every test instance
         test_loss = []
@@ -163,7 +168,7 @@ class Solver:
             # TODO: the tta_features_batch shape is: (batch_size, num_of_augmentations, num_dataset_features)
 
             # neighbors_indices: ndarray of shape (batch_size, num_of_augmentations)
-            neighbors_indices = knn_model.kneighbors(x_batch_test)
+            neighbors_indices = knn_model.kneighbors(x_batch_test, return_distance=False)
             neighbors_indices = np.squeeze(neighbors_indices)
 
             # tta_features_batch: ndarray of shape (batch_size, num_dataset_features)
@@ -178,7 +183,7 @@ class Solver:
                 tta_features_full = np.concatenate([neighbors_features, fake_tta_features])
                 tta_labels_full = np.concatenate([neighbors_labels, fake_tta_labels])
 
-                osmp_obj = oversampling_method(sampling_strategy='minority', k_neighbors=1)
+                osmp_obj = oversampling_method(sampling_strategy='minority', k_neighbors=NUM_OF_AUGMENTATIONS-1)
                 X_res, y_res = osmp_obj.fit_resample(tta_features_full, tta_labels_full)
 
                 tta_features = X_res[-NUM_OF_AUGMENTATIONS:]
@@ -226,8 +231,17 @@ class Solver:
 
         return accuracy, precision, recall, f_score, auc
 
-    def get_oversampling_tta_sample(self):
-        pass
+    def get_oversampling_tta_sample(self, neighbors_features, neighbors_labels, NUM_OF_AUGMENTATIONS):
+        fake_tta_features = [tta_feature for tta_feature in neighbors_features] + [neighbors_features[-1] for i in
+                                                                                   range(NUM_OF_AUGMENTATIONS)]
+        fake_tta_labels = [1 for i in fake_tta_features]
+        tta_features_full = np.concatenate([neighbors_features, fake_tta_features])
+        tta_labels_full = np.concatenate([neighbors_labels, fake_tta_labels])
+
+        osmp_obj = oversampling_method(sampling_strategy='minority', k_neighbors=NUM_OF_AUGMENTATIONS - 1)
+        X_res, y_res = osmp_obj.fit_resample(tta_features_full, tta_labels_full)
+
+        return X_res[-NUM_OF_AUGMENTATIONS:]
 
     @tf.function
     def test_step(self, inputs):
