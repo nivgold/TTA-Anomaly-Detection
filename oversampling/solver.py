@@ -11,7 +11,7 @@ from autoencdoer_model import *
 
 
 class Solver:
-    def __init__(self, train_ds, test_ds, epochs=32, features_dim=231):
+    def __init__(self, train_ds, test_ds, epochs=32, features_dim=76):
         self.train_ds = train_ds
         self.test_ds = test_ds
         self.num_epochs = epochs
@@ -33,6 +33,18 @@ class Solver:
         # enable GPU
         # setup tensorboard
 
+    def save_weights(self, path, dataset_name):
+        encoder_path = path + f"/epochs_{self.num_epochs}_{dataset_name}_encoder"
+        decoder_path = path + f"/epochs_{self.num_epochs}_{dataset_name}_decoder"
+
+        self.encoder.save(encoder_path)
+        self.decoder.save(decoder_path)
+
+    def load_weights(self, path):
+        encoder_path = path + "/encoder"
+        decoder_path = path + "/decoder"
+        self.encoder = tf.keras.models.load_model(encoder_path)
+        self.decoder = tf.keras.models.load_model(decoder_path)
 
     def train(self):
 
