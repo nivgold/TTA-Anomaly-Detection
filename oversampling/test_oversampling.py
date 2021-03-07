@@ -28,10 +28,16 @@ y_train = ids18.train_labels
 # print("classes:", y_train.unique())
 
 from sklearn.neighbors import NearestNeighbors
+import cuml, cudf
+from cuml.neighbors import NearestNeighbors as cuNearestNeighbors
 
-nn = NearestNeighbors(n_neighbors=5)
+# nn = NearestNeighbors(n_neighbors=5)
+print("Now with RAPIDS")
+print(X_train.shape)
+nn = cuNearestNeighbors(n_neighbors=5)
 print("start fit Nearest Neighbors...")
-nn.fit(X_train[2:10].values)
+X_rapids = cudf.DataFrame(X_train.values)
+nn.fit(X_rapids)
 print("Nearest Neighbors fitted.")
 
 ind = nn.kneighbors(X_train[0:2].values, return_distance=False)
@@ -50,12 +56,12 @@ for tta_features, tta_labels in list(zip(tta_batch_features, tta_batch_labels)):
 
     print("Before:")
     print(tta_features)
-    print(tta_labels)
-    sm = SMOTE(sampling_strategy='minority', k_neighbors=1)
+    # print(tta_labels)
+    sm = SMOTE(sampling_strategy='minority', k_neighbors=num_augmentation-1)
     X_res, y_res = sm.fit_resample(tta_features_full, tta_labels_full)
     print("\n\nAfter:")
-    tta_sample = X_res[-5:]
+    tta_sample = X_res[-num_augmentation:]
     print(tta_sample)
-    print(y_res[-5:])
+    # print(y_res[-num_augmentation:])
 
     break
