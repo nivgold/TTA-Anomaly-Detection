@@ -4,6 +4,9 @@ from solver import Solver
 import tensorflow as tf
 import time
 
+# import os
+# os.environ['TF_XLA_FLAGS'] = '--tf_xla_enable_xla_devices'
+
 def get_execute_time(start_time, end_time):
     hours, rem = divmod(end_time - start_time, 3600)
     minutes, seconds = divmod(rem, 60)
@@ -22,11 +25,6 @@ print("---IDS2018 train_ds, test_ds ready after: ", end='')
 get_execute_time(start_time, end_train_test)
 
 solver_obj = Solver(ids18_train_ds, ids18_test_ds, epochs=EPOCHS, features_dim=IDS18_DIM)
-
-if tf.test.gpu_device_name():
-    print('Default GPU Device:{}'.format(tf.test.gpu_device_name()))
-else:
-   print("Please install GPU version of TF")
 
 # TRAINING
 start_time = time.time()
