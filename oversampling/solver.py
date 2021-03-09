@@ -54,7 +54,7 @@ class Solver:
             epoch_loss_mean = tf.keras.metrics.Mean()
 
             for step, (x_batch_train, y_batch_train) in enumerate(self.train_ds):
-                print(f'Step: {step} in epoch {epoch}')
+                if step%1000 == 0: print(f'Step: {step} in epoch {epoch}')
                 loss = self.train_step(x_batch_train)
 
                 # keep track of the metrics
