@@ -159,58 +159,6 @@ class IDS2018Dataset:
             return df
 
 
-            # # # sliding window of 5 ticks
-            # # rolled_max = df_features.rolling(5).max()
-            # # rolled_max.columns = [f'MAX - {column}' for column in list(rolled_max.columns)]
-            # #
-            # # rolled_min = df_features.rolling(5).min()
-            # # rolled_min.columns = [f'MIN - {column}' for column in list(rolled_min.columns)]
-            # #
-            # # rolled_std = df_features.rolling(5).std()
-            # # rolled_std.columns = [f'STD - {column}' for column in list(rolled_std.columns)]
-            # #
-            # # rolled_labels = df_label.rolling(5).max()
-            # #
-            # # print('concatenating to create full rolled dataframe')
-            # # rolled = pd.concat([rolled_max, rolled_min, rolled_std, rolled_labels], axis=1)
-            #
-            # print("start group by flow id")
-            # # Trying to aggregate by Flow ID
-            # try:
-            #     rolled_list = []
-            #     grouped = df.groupby(by='Flow ID')
-            #     for i, grouped_data in enumerate(grouped):
-            #         flow_id, flow_id_df = grouped_data
-            #         if i % 1000 == 0:
-            #             print(i)
-            #         # print(f'{flow_id}: len: {len(flow_id_df)}')
-            #         rolled_max = flow_id_df.rolling(5).max()
-            #         rolled_max.columns = [f'MAX - {column}' for column in list(rolled_max.columns)]
-            #
-            #         rolled_min = flow_id_df.rolling(5).min()
-            #         rolled_min.columns = [f'MIN - {column}' for column in list(rolled_min.columns)]
-            #
-            #         rolled_std = flow_id_df.rolling(5).std()
-            #         rolled_std.columns = [f'STD - {column}' for column in list(rolled_std.columns)]
-            #
-            #         rolled_labels = flow_id_df.rolling(5).max()
-            #
-            #         # print(rolled_max.shape, rolled_std.shape, rolled_min.shape, rolled_labels.shape)
-            #         current_rolled = pd.concat([rolled_max, rolled_min, rolled_std, rolled_labels], axis=1)
-            #         rolled_list.append(current_rolled)
-            # except Exception as e:
-            #     print(e)
-            #
-            # # concatenate all the rolls to a total rolled
-            # print('concatenating to create full rolled dataframe')
-            # rolled = pd.concat(rolled_list, axis=0)
-            #
-            # # TODO: maybe not the best idea to fill all of the nan with mean
-            # rolled = rolled.fillna(rolled.mean())
-            # rolled[target_col] = rolled[target_col].astype(np.int16)
-            #
-            # return rolled
-
         # ------ start of the preprocessing func ------
         print('aggregating...')
         data_df = _agg_df(data)
@@ -260,14 +208,12 @@ def get_dataset(data_path, batch_size, from_disk=True):
     # load the features and the labels and convert them to tf.Dataset (train and test)
     ids18 = IDS2018Dataset(data_path, from_disk=from_disk)
 
-    # train_ds = df_to_dataset(data=ids17.train_features, labels=ids17.train_labels, shuffle=shuffle, batch_size=batch_size).map(pack_features_vector)
     train_ds = (tf.data.Dataset.from_tensor_slices(
         (dict(ids18.train_features), ids18.train_labels))
                 .cache()
                 .batch(batch_size)
                 .map(train_pack_features_vector))
 
-    # test_ds = df_to_dataset(data=ids17.test_features, labels=ids17.test_labels, shuffle=shuffle, batch_size=batch_size).map(pack_features_vector)
     test_ds = (tf.data.Dataset.from_tensor_slices(
         (dict(ids18.test_features), ids18.test_labels))
                .cache()
