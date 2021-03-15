@@ -56,7 +56,7 @@ def train_test_split(full_df, test_ratio=0.3):
 
 
 class IDS2018Dataset:
-    def __init__(self, data_dir_path, from_disk=False, disk_path='/home/nivgold/pkls/oversampling_pkls'):
+    def __init__(self, data_dir_path, from_disk=False, disk_path='/home/nivgold/pkls/oversampling_pkls/ids2018_pkls'):
         self.disk_path = disk_path
 
         if from_disk:
