@@ -56,18 +56,18 @@ def train_test_split(full_df, test_ratio=0.3):
 
 
 class IDS2018Dataset:
-    def __init__(self, data_dir_path, from_disk=False):
+    def __init__(self, data_dir_path, from_disk=False, disk_path='/home/nivgold/pkls/oversampling_pkls'):
+        self.disk_path = disk_path
 
         if from_disk:
             print("Loading pkls...")
 
-            path = '/home/nivgold/TTA-Anomaly-Detection/oversampling/out/ids2018_out/pkls'
             # loading from files
-            self.train_features = pd.read_pickle(path+"/train_features.pkl")
-            self.train_labels = pd.read_pickle(path+"/train_labels.pkl")
+            self.train_features = pd.read_pickle(disk_path+"/train_features.pkl")
+            self.train_labels = pd.read_pickle(disk_path+"/train_labels.pkl")
 
-            self.test_features = pd.read_pickle(path+"/test_features.pkl")
-            self.test_labels = pd.read_pickle(path+"/test_labels.pkl")
+            self.test_features = pd.read_pickle(disk_path+"/test_features.pkl")
+            self.test_labels = pd.read_pickle(disk_path+"/test_labels.pkl")
 
         else:
 
@@ -172,14 +172,12 @@ class IDS2018Dataset:
     def save_attributes_to_disk(self):
         print('saving attributes...')
 
-        path = '/home/nivgold/TTA-Anomaly-Detection/oversampling/out/ids2018_out/pkls'
-
         # save train
-        pd.to_pickle(self.train_features, path+"/train_features.pkl")
-        pd.to_pickle(self.train_labels, path+"/train_labels.pkl")
+        pd.to_pickle(self.train_features, self.disk_path+"/train_features.pkl")
+        pd.to_pickle(self.train_labels, self.disk_path+"/train_labels.pkl")
         # save test
-        pd.to_pickle(self.test_features, path+"/test_features.pkl")
-        pd.to_pickle(self.test_labels, path+"/test_labels.pkl")
+        pd.to_pickle(self.test_features, self.disk_path+"/test_features.pkl")
+        pd.to_pickle(self.test_labels, self.disk_path+"/test_labels.pkl")
 
 def df_to_dataset(data, labels, shuffle=False, batch_size=32):
     # df -> dataset -> cache -> shuffle -> batch -> prefetch
