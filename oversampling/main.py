@@ -7,13 +7,16 @@ import time
 # import os
 # os.environ['TF_XLA_FLAGS'] = '--tf_xla_enable_xla_devices'
 
+gpus = tf.config.experimental.list_physical_devices('GPU')
+tf.config.experimental.set_memory_growth(gpus[0], True)
+
 def get_execute_time(start_time, end_time):
     hours, rem = divmod(end_time - start_time, 3600)
     minutes, seconds = divmod(rem, 60)
     print("{:0>2}:{:0>2}:{:05.2f}".format(int(hours), int(minutes), seconds))
 
 HOME_PATH = '/home/nivgold'
-EPOCHS = 2
+EPOCHS = 1
 IDS17_DIM = 77
 IDS18_DIM = 76
 
@@ -33,19 +36,25 @@ solver_obj.train()
 end_training = time.time()
 print("---training finished after: ", end='')
 get_execute_time(start_time, end_training)
+# saving the trained weights
+solver_obj.save_weights(path='/home/nivgold/TTA-Anomaly-Detection/oversampling/out/models', dataset_name='IDS18')
 
-# # TEST WTHOUT TTA
-# start_time = time.time()
-# print("Start testing...")
-# accuracy, precision, recall, f_score, auc = solver_obj.test()
-# end_testing = time.time()
-# print("---training finished after: ", end='')
-# get_execute_time(start_time, end_testing)
+encoder_path = '/home/nivgold/TTA-Anomaly-Detection/oversampling/out/models/epochs_100_IDS18_encoder_weights.npy'
+decoder_path = '/home/nivgold/TTA-Anomaly-Detection/oversampling/out/models/epochs_100_IDS18_decoder_weights.npy'
+solver_obj.load_weights(encoder_path, decoder_path)
 
-# # TEST WITH TTA
-# start_time = time.time()
-# print("Start testing with TTA...")
-# accuracy, precision, recall, f_score, auc = solver_obj.test_tta()
-# end_tta_testing = time.time()
-# print("---training finished after: ")
-# get_execute_time(start_time, end_tta_testing)
+# TEST WTHOUT TTA
+start_time = time.time()
+print("Start testing...")
+accuracy, precision, recall, f_score, auc = solver_obj.test()
+end_testing = time.time()
+print("---testing finished after: ", end='')
+get_execute_time(start_time, end_testing)
+
+# TEST WITH TTA
+start_time = time.time()
+print("Start testing with TTA...")
+accuracy, precision, recall, f_score, auc = solver_obj.test_tta("smote")
+end_tta_testing = time.time()
+print("---TTA testing finished after: ", end='')
+get_execute_time(start_time, end_tta_testing)

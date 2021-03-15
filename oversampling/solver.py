@@ -15,6 +15,7 @@ class Solver:
         self.train_ds = train_ds
         self.test_ds = test_ds
         self.num_epochs = epochs
+        self.features_dim = features_dim
 
         # using the SimpleAE model
         self.encoder = Encoder(input_shape=features_dim)
@@ -34,17 +35,31 @@ class Solver:
         # setup tensorboard
 
     def save_weights(self, path, dataset_name):
-        encoder_path = path + f"/epochs_{self.num_epochs}_{dataset_name}_encoder"
-        decoder_path = path + f"/epochs_{self.num_epochs}_{dataset_name}_decoder"
+        encoder_path = path + f"/epochs_{self.num_epochs}_{dataset_name}_encoder_weights"
+        decoder_path = path + f"/epochs_{self.num_epochs}_{dataset_name}_decoder_weights"
 
-        self.encoder.save(encoder_path)
-        self.decoder.save(decoder_path)
+        np.save(encoder_path, self.encoder.get_weights())
+        np.save(decoder_path, self.decoder.get_weights())
 
-    def load_weights(self, path):
-        encoder_path = path + "/encoder"
-        decoder_path = path + "/decoder"
-        self.encoder = tf.keras.models.load_model(encoder_path)
-        self.decoder = tf.keras.models.load_model(decoder_path)
+        print("In Save Method")
+        print(f"Encoder weights: {self.encoder.get_weights()}")
+        print(f"Decoder weights: {self.decoder.get_weights()}")
+
+    def load_weights(self, encoder_path, decoder_path):
+        self.encoder = Encoder(input_shape=self.features_dim)
+        self.decoder = Decoder(original_dim=self.features_dim)
+
+        encoder_trained_weights = np.load(encoder_path, allow_pickle=True)
+        decoder_trained_weights = np.load(decoder_path, allow_pickle=True)
+
+        # calculating just one feed-forward in order to set the layers weights' shapes
+        for batch_X_train, batch_y_train in self.train_ds:
+            latent_var = self.encoder(batch_X_train)
+            self.decoder(latent_var)
+            break
+
+        self.encoder.set_weights(encoder_trained_weights)
+        self.decoder.set_weights(decoder_trained_weights)
 
     def train(self):
 
@@ -54,7 +69,7 @@ class Solver:
             epoch_loss_mean = tf.keras.metrics.Mean()
 
             for step, (x_batch_train, y_batch_train) in enumerate(self.train_ds):
-                if step%1000 == 0: print(f'Step: {step} in epoch {epoch}')
+                # if step%1000 == 0: print(f'Step: {step} in epoch {epoch}')
                 loss = self.train_step(x_batch_train)
 
                 # keep track of the metrics
@@ -152,12 +167,14 @@ class Solver:
             X_train_list.append(x_batch_train)
             y_train_list.append(y_batch_train)
 
+        print("Done iterating through all training set")
+
         # adjusting X to be: ndarray of shape (num_dataset_samples, num_dataset_features)
         X_train = np.concatenate(X_train_list, axis=0)
         y_train = np.concatenate(y_train_list, axis=0)
 
         # decide the oversampling method
-        oversampling_method = self.get_oversampling_method(method_name)
+        oversampling_method = self.get_oversampling_method(method_name)[0]
         NUM_OF_AUGMENTATIONS = 5
 
         # if SMOTE is the augmentation method -> training KNN model with training samples (RAPIDS KNN IMPLEMENTATION)
@@ -165,6 +182,11 @@ class Solver:
         knn_model = cuNearestNeighbors(n_neighbors=NUM_OF_AUGMENTATIONS)
 
         knn_model.fit(X_rapids)
+        print("KNN model is fitted")
+
+        # prepare fake tta features and labels
+        fake_tta_features = np.zeros((NUM_OF_AUGMENTATIONS*2, self.features_dim))
+        fake_tta_labels = np.ones((fake_tta_features.shape[0]))
 
         # iterating through the test to calculate the loss of every test instance
         test_loss = []
@@ -176,11 +198,10 @@ class Solver:
             reconstruction_loss = self.test_step(x_batch_test).numpy()
             test_labels.append(y_batch_test.numpy())
 
-            # TODO: make batch samples using oversampling method, calculate predictions and final predication
             # TODO: the tta_features_batch shape is: (batch_size, num_of_augmentations, num_dataset_features)
 
             # neighbors_indices: ndarray of shape (batch_size, num_of_augmentations)
-            neighbors_indices = knn_model.kneighbors(x_batch_test, return_distance=False)
+            neighbors_indices = knn_model.kneighbors(np.array(x_batch_test), return_distance=False)
             neighbors_indices = np.squeeze(neighbors_indices)
 
             # tta_features_batch: ndarray of shape (batch_size, num_dataset_features)
@@ -189,32 +210,18 @@ class Solver:
 
             tta_reconstruction = []
             for neighbors_features, neighbors_labels in list(zip(neighbors_batch_features, neighbors_batch_labels)):
-                # TODO: dump the tta creation to a function
-                fake_tta_features = [tta_feature for tta_feature in neighbors_features] + [neighbors_features[-1] for i in range(NUM_OF_AUGMENTATIONS)]
-                fake_tta_labels = [1 for i in fake_tta_features]
-                tta_features_full = np.concatenate([neighbors_features, fake_tta_features])
-                tta_labels_full = np.concatenate([neighbors_labels, fake_tta_labels])
-
-                osmp_obj = oversampling_method(sampling_strategy='minority', k_neighbors=NUM_OF_AUGMENTATIONS-1)
-                X_res, y_res = osmp_obj.fit_resample(tta_features_full, tta_labels_full)
-
-                tta_features = X_res[-NUM_OF_AUGMENTATIONS:]
+                tta_features = self.get_oversampling_tta_sample(neighbors_features, neighbors_labels, NUM_OF_AUGMENTATIONS, oversampling_method, fake_tta_features, fake_tta_labels)
 
                 # making the test phase for the tta sample
                 tta_reconstruction_loss = self.test_step(tta_features).numpy()
                 tta_reconstruction.append(tta_reconstruction_loss)
 
-
-            # # calculating the tta samples reconstructions
-            # tta_reconstruction = []
-            # for tta_sample in tta_features_batch:
-            #     tta_reconstruction_loss = self.test_step(tta_sample).numpy()
-            #     tta_reconstruction.append(tta_reconstruction_loss)
-
             # calculating the final loss - mean over primary sample and tta samples
             for primary_loss, tta_loss in list(zip(reconstruction_loss, tta_reconstruction)):
                 combined_tta_loss = np.concatenate([[primary_loss], tta_loss])
                 test_loss.append(np.mean(combined_tta_loss))
+
+            # print(f"{step}/{len(self.test_ds)}")
 
         train_loss = np.concatenate(train_loss, axis=0)
 
@@ -243,10 +250,14 @@ class Solver:
 
         return accuracy, precision, recall, f_score, auc
 
-    def get_oversampling_tta_sample(self, neighbors_features, neighbors_labels, NUM_OF_AUGMENTATIONS):
-        fake_tta_features = [tta_feature for tta_feature in neighbors_features] + [neighbors_features[-1] for i in
-                                                                                   range(NUM_OF_AUGMENTATIONS)]
-        fake_tta_labels = [1 for i in fake_tta_features]
+    def get_oversampling_tta_sample(self, neighbors_features, neighbors_labels, NUM_OF_AUGMENTATIONS, oversampling_method, fake_tta_features, fake_tta_labels):
+        # fake_tta_features = [tta_feature for tta_feature in neighbors_features] + [neighbors_features[-1] for i in
+        #                                                                            range(NUM_OF_AUGMENTATIONS)]
+        # fake_tta_labels = [1 for i in fake_tta_features]
+
+        # fake_tta_features = np.zeros((NUM_OF_AUGMENTATIONS*2, neighbors_features.shape[1]))
+        # fake_tta_labels = np.ones((fake_tta_features.shape[0]))
+
         tta_features_full = np.concatenate([neighbors_features, fake_tta_features])
         tta_labels_full = np.concatenate([neighbors_labels, fake_tta_labels])
 
