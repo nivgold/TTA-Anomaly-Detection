@@ -151,7 +151,7 @@ class Solver:
         return methods_dict[method_name]
 
 
-    def test_tta(self, method_name):
+    def test_tta(self, method_name, num_neighbors, num_augmentations):
 
         # loss function - with reduction equals to `NONE` in order to get the loss of every test example
         self.loss_func = tf.keras.losses.MeanSquaredError(reduction=tf.keras.losses.Reduction.NONE)
@@ -160,7 +160,7 @@ class Solver:
         train_loss = []
         X_train_list = []
         y_train_list = []
-        for step, (x_batch_train, y_batch_train) in enumerate(self.train_ds):
+        for step, (x_batch_train, y_batch_train) in enumerate(self.train_ds.take(1000)):
             loss = self.test_step(x_batch_train)
             train_loss.append(loss.numpy())
 
@@ -175,17 +175,16 @@ class Solver:
 
         # decide the oversampling method
         oversampling_method = self.get_oversampling_method(method_name)[0]
-        NUM_OF_AUGMENTATIONS = 5
 
         # if SMOTE is the augmentation method -> training KNN model with training samples (RAPIDS KNN IMPLEMENTATION)
         X_rapids = cudf.DataFrame(X_train)
-        knn_model = cuNearestNeighbors(n_neighbors=NUM_OF_AUGMENTATIONS)
+        knn_model = cuNearestNeighbors(n_neighbors=num_neighbors)
 
         knn_model.fit(X_rapids)
         print("KNN model is fitted")
 
         # prepare fake tta features and labels
-        fake_tta_features = np.zeros((NUM_OF_AUGMENTATIONS*2, self.features_dim))
+        fake_tta_features = np.zeros((num_neighbors + num_augmentations, self.features_dim))
         fake_tta_labels = np.ones((fake_tta_features.shape[0]))
 
         # iterating through the test to calculate the loss of every test instance
@@ -210,7 +209,7 @@ class Solver:
 
             tta_reconstruction = []
             for neighbors_features, neighbors_labels in list(zip(neighbors_batch_features, neighbors_batch_labels)):
-                tta_features = self.get_oversampling_tta_sample(neighbors_features, neighbors_labels, NUM_OF_AUGMENTATIONS, oversampling_method, fake_tta_features, fake_tta_labels)
+                tta_features = self.get_oversampling_tta_sample(neighbors_features, neighbors_labels, num_augmentations, oversampling_method, fake_tta_features, fake_tta_labels)
 
                 # making the test phase for the tta sample
                 tta_reconstruction_loss = self.test_step(tta_features).numpy()
@@ -250,21 +249,22 @@ class Solver:
 
         return accuracy, precision, recall, f_score, auc
 
-    def get_oversampling_tta_sample(self, neighbors_features, neighbors_labels, NUM_OF_AUGMENTATIONS, oversampling_method, fake_tta_features, fake_tta_labels):
-        # fake_tta_features = [tta_feature for tta_feature in neighbors_features] + [neighbors_features[-1] for i in
-        #                                                                            range(NUM_OF_AUGMENTATIONS)]
-        # fake_tta_labels = [1 for i in fake_tta_features]
-
-        # fake_tta_features = np.zeros((NUM_OF_AUGMENTATIONS*2, neighbors_features.shape[1]))
-        # fake_tta_labels = np.ones((fake_tta_features.shape[0]))
-
+    def get_oversampling_tta_sample(self, neighbors_features, neighbors_labels, num_augmentations, oversampling_method, fake_tta_features, fake_tta_labels):
         tta_features_full = np.concatenate([neighbors_features, fake_tta_features])
         tta_labels_full = np.concatenate([neighbors_labels, fake_tta_labels])
 
-        osmp_obj = oversampling_method(sampling_strategy='minority', k_neighbors=NUM_OF_AUGMENTATIONS - 1)
+        len_class_0 = len(neighbors_labels)
+        len_class_1 = len(fake_tta_labels)
+
+        oversampling_class_dict = {
+            0: len_class_0 + num_augmentations,
+            1: len_class_1
+        }
+
+        osmp_obj = oversampling_method(sampling_strategy=oversampling_class_dict, k_neighbors=len_class_0)
         X_res, y_res = osmp_obj.fit_resample(tta_features_full, tta_labels_full)
 
-        return X_res[-NUM_OF_AUGMENTATIONS:]
+        return X_res[-num_augmentations:]
 
     @tf.function
     def test_step(self, inputs):
