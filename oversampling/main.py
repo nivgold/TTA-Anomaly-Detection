@@ -29,32 +29,32 @@ get_execute_time(start_time, end_train_test)
 
 solver_obj = Solver(ids18_train_ds, ids18_test_ds, epochs=EPOCHS, features_dim=IDS18_DIM)
 
-# TRAINING
-start_time = time.time()
-print("Start training...")
-solver_obj.train()
-end_training = time.time()
-print("---training finished after: ", end='')
-get_execute_time(start_time, end_training)
-# saving the trained weights
-solver_obj.save_weights(path='/home/nivgold/TTA-Anomaly-Detection/oversampling/out/models', dataset_name='IDS18')
+# # TRAINING
+# start_time = time.time()
+# print("Start training...")
+# solver_obj.train()
+# end_training = time.time()
+# print("---training finished after: ", end='')
+# get_execute_time(start_time, end_training)
+# # saving the trained weights
+# solver_obj.save_weights(path='/home/nivgold/models', dataset_name='IDS18')
 
-encoder_path = '/home/nivgold/TTA-Anomaly-Detection/oversampling/out/models/epochs_100_IDS18_encoder_weights.npy'
-decoder_path = '/home/nivgold/TTA-Anomaly-Detection/oversampling/out/models/epochs_100_IDS18_decoder_weights.npy'
+encoder_path = '/home/nivgold/models/epochs_100_IDS18_encoder_weights.npy'
+decoder_path = '/home/nivgold/models/epochs_100_IDS18_decoder_weights.npy'
 solver_obj.load_weights(encoder_path, decoder_path)
 
-# TEST WTHOUT TTA
-start_time = time.time()
-print("Start testing...")
-accuracy, precision, recall, f_score, auc = solver_obj.test()
-end_testing = time.time()
-print("---testing finished after: ", end='')
-get_execute_time(start_time, end_testing)
+# # TEST WTHOUT TTA
+# start_time = time.time()
+# print("Start testing...")
+# accuracy, precision, recall, f_score, auc = solver_obj.test()
+# end_testing = time.time()
+# print("---testing finished after: ", end='')
+# get_execute_time(start_time, end_testing)
 
 # TEST WITH TTA
 start_time = time.time()
 print("Start testing with TTA...")
-accuracy, precision, recall, f_score, auc = solver_obj.test_tta("smote")
+accuracy, precision, recall, f_score, auc = solver_obj.test_tta("borderline_smote", num_neighbors=50, num_augmentations=2)
 end_tta_testing = time.time()
 print("---TTA testing finished after: ", end='')
 get_execute_time(start_time, end_tta_testing)
