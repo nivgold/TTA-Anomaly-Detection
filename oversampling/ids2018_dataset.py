@@ -63,14 +63,13 @@ class IDS2018Dataset:
             print("Loading pkls...")
 
             # loading from files
-            self.train_features = pd.read_pickle(disk_path+"/train_features.pkl")
-            self.train_labels = pd.read_pickle(disk_path+"/train_labels.pkl")
+            self.train_features = pd.read_pickle(disk_path+"/train_features_ids2018.pkl")
+            self.train_labels = pd.read_pickle(disk_path+"/train_labels_ids2018.pkl")
 
-            self.test_features = pd.read_pickle(disk_path+"/test_features.pkl")
-            self.test_labels = pd.read_pickle(disk_path+"/test_labels.pkl")
+            self.test_features = pd.read_pickle(disk_path+"/test_features_ids2018.pkl")
+            self.test_labels = pd.read_pickle(disk_path+"/test_labels_ids2018.pkl")
 
         else:
-
             # trying opening only the 3.3G file
             print(f'Openning {data_dir_path}')
             full_df = pd.read_csv(data_dir_path, nrows=3000000)
@@ -113,12 +112,6 @@ class IDS2018Dataset:
             return pd.concat([df_features_scaled, df_labels], axis=1)
 
         def _agg_df(df):
-            # # converting the `Timestamp` column to be datetime dtype
-            # try:
-            #     df[' Timestamp'] = df[' Timestamp'].apply(lambda x: datetime.strptime(x, '%m/%d/%Y %H:%M'))
-            # except Exception as e:
-            #     df[' Timestamp'] = df[' Timestamp'].apply(lambda x: datetime.strptime(x, '%m/%d/%Y %H:%M:%S'))
-
             target_col = 'Label'
 
             df[target_col] = np.where(df[target_col] == 'Benign', 0, 1)
@@ -145,11 +138,6 @@ class IDS2018Dataset:
                                'Fwd Seg Size Min', 'Active Mean', 'Active Std', 'Active Max',
                                'Active Min', 'Idle Mean', 'Idle Std', 'Idle Max', 'Idle Min']
 
-
-            # df = df[desired_cols + [target_col]]
-            df_features = df[['Flow ID'] + desired_cols]
-            df_label = df[target_col]
-
             df = df[desired_cols + [target_col]]
 
             # replacing inf values with column max
@@ -173,11 +161,11 @@ class IDS2018Dataset:
         print('saving attributes...')
 
         # save train
-        pd.to_pickle(self.train_features, self.disk_path+"/train_features.pkl")
-        pd.to_pickle(self.train_labels, self.disk_path+"/train_labels.pkl")
+        pd.to_pickle(self.train_features, self.disk_path+"/train_features_ids2018.pkl")
+        pd.to_pickle(self.train_labels, self.disk_path+"/train_labels_ids2018.pkl")
         # save test
-        pd.to_pickle(self.test_features, self.disk_path+"/test_features.pkl")
-        pd.to_pickle(self.test_labels, self.disk_path+"/test_labels.pkl")
+        pd.to_pickle(self.test_features, self.disk_path+"/test_features_ids2018.pkl")
+        pd.to_pickle(self.test_labels, self.disk_path+"/test_labels_ids2018.pkl")
 
 def df_to_dataset(data, labels, shuffle=False, batch_size=32):
     # df -> dataset -> cache -> shuffle -> batch -> prefetch
@@ -219,41 +207,3 @@ def get_dataset(data_path, batch_size, from_disk=True):
                .map(test_pack_features_vector))
 
     return train_ds, test_ds
-
-
-
-
-"""## If Necessary - Create Tensorflow Dataset"""
-
-# features_dict_values = [tf.float64 for i in range(features.shape[1])]
-# features_dict_keys = list(features.columns)
-
-# features_dict = dict(zip(features_dict_keys, features_dict_values))
-# features_dict["label"] = tfds.features.ClassLabel(num_classes=2)
-
-
-# class SSPD1DATASET(tfds.core.GeneratorBasedBuilder):
-#   """SSPD Flooding Attack against the DVR Server"""
-
-#   VERSION = tfds.core.Version('0.1.0')
-
-#   def _info(self):
-#     return tfds.core.DatasetInfo(
-#         builder=self,
-#         # This is the description that will appear on the datasets page.
-#         description=("SSPD Flooding Attack against the DVR Server"),
-#         # tfds.features.FeatureConnectors
-#         features=tfds.features.FeaturesDict(features_dict),
-#         # Homepage of the dataset for documentation
-#         homepage="https://drive.google.com/drive/u/1/folders/1o3J-0uJ-ZhR_ETVANGPmnOBwx4332vlw",
-#     )
-
-#   def _split_generators(self, dl_manager):
-#     # Downloads the data and defines the splits
-#     # dl_manager is a tfds.download.DownloadManager that can be used to
-#     # download and extract URLs
-#     pass  # TODO
-
-#   def _generate_examples(self):
-#     # Yields examples from the dataset
-#     yield 'key', {}

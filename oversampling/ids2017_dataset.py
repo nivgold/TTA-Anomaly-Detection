@@ -56,37 +56,20 @@ def train_test_split(full_df, train_ratio=0.7):
 
 
 class IDS2017Dataset:
-    def __init__(self, data_dir_path, from_disk=False):
+    def __init__(self, data_dir_path, from_disk=False, disk_path='/home/nivgold/pkls/oversampling_pkls/ids2018_pkls'):
+        self.disk_path = disk_path
 
         if from_disk:
             print("Loading pkls...")
 
-            path = '/home/nivgold/TTA-Anomaly-Detection/oversampling/out/ids2017_out/pkls'
             # loading from files
-            self.train_features = pd.read_pickle(path+"/train_features.pkl")
-            self.train_labels = pd.read_pickle(path+"/train_labels.pkl")
+            self.train_features = pd.read_pickle(disk_path+"/train_features_ids2017.pkl")
+            self.train_labels = pd.read_pickle(disk_path+"/train_labels_ids2017.pkl")
 
-            self.test_features = pd.read_pickle(path+"/test_features.pkl")
-            self.test_labels = pd.read_pickle(path+"/test_labels.pkl")
+            self.test_features = pd.read_pickle(disk_path+"/test_features_ids2017.pkl")
+            self.test_labels = pd.read_pickle(disk_path+"/test_labels_ids2017.pkl")
 
         else:
-            # if full_df_input is None:
-            #     df_list = []
-            #     for file_name in os.listdir(data_dir_path):
-            #         if file_name.endswith('.csv'):
-            #             print(f'Openning {file_name}')
-            #             data_path = os.path.join(data_dir_path, file_name)
-            #             df = pd.read_csv(data_path, encoding='cp1252')
-            #             df = df.dropna()
-            #             df_list.append(self.preprocessing(df))
-            #
-            #     # concat rows
-            #     full_df = pd.concat(df_list, axis=0)
-            #     full_df = reduce_mem_usage(full_df)
-            #
-            # else:
-            #     full_df = full_df_input
-
             df_list = []
             for file_name in os.listdir(data_dir_path):
                 if file_name.endswith('.csv'):
@@ -133,13 +116,9 @@ class IDS2017Dataset:
             return df
 
         def _agg_df(df):
-            # # converting the `Timestamp` column to be datetime dtype
-            # try:
-            #     df[' Timestamp'] = df[' Timestamp'].apply(lambda x: datetime.strptime(x, '%m/%d/%Y %H:%M'))
-            # except Exception as e:
-            #     df[' Timestamp'] = df[' Timestamp'].apply(lambda x: datetime.strptime(x, '%m/%d/%Y %H:%M:%S'))
+            target_col = ' Label'
 
-            df[' Label'] = np.where(df[' Label'] == 'BENIGN', 0, 1)
+            df[target_col] = np.where(df[target_col] == 'BENIGN', 0, 1)
 
             desired_cols = [' Flow Duration',
                             ' Total Fwd Packets', ' Total Backward Packets',
@@ -169,8 +148,6 @@ class IDS2017Dataset:
                             ' Active Std', ' Active Max', ' Active Min', 'Idle Mean', ' Idle Std',
                             ' Idle Max', ' Idle Min']
 
-            target_col = ' Label'
-
             df = df[desired_cols + [target_col]]
 
             # replacing inf values with column max
@@ -179,42 +156,6 @@ class IDS2017Dataset:
 
             return df
 
-            # def label_func(label_vector):
-            #     # print(label_vector.unique())
-            #     label_unique = label_vector.unique()
-            #     if len(label_unique) == 1 and (0 in label_unique):
-            #         label_col = pd.Series(0, index=['Label'], dtype=np.int16)
-            #     else:
-            #         label_col = pd.Series(1, index=['Label'], dtype=np.int16)
-            #     return label_col
-            #
-            # agg_dict = dict(zip(desired_cols, [[np.max, np.min, np.std] for i in range(len(desired_cols))]))
-            # agg_dict[target_col] = label_func
-            #
-            # # sliding window of 5 ticks
-            # rolled = df.rolling(5).agg(agg_dict)
-            #
-            # # # Trying to aggregate by Flow ID
-            # # rolled_list = []
-            # # grouped = df.groupby(by='Flow ID')
-            # # for flow_id, flow_id_df in grouped:
-            # #     print(flow_id_df)
-            # #     current_rolled = flow_id_df.rolling(5).agg(agg_dict)
-            # #     rolled_list.append(current_rolled)
-            # # # concatenate all the rolls to a total rolled
-            # # rolled = pd.concat(rolled_list, axis=0)
-            #
-            # # fixing columns names
-            # new_columns = list(rolled.columns)
-            # new_columns = [(i + ' - ' + j.upper()).strip() for i, j in new_columns]
-            # new_columns[-1] = 'Label'
-            # rolled.columns = new_columns
-            #
-            # # fill all the nans
-            # rolled = rolled.fillna(rolled.mean())
-            # rolled['Label'] = rolled['Label'].astype(np.int16)
-            #
-            # return rolled
 
         # ------ start of the preprocessing func ------
         print('aggregating...')
@@ -229,14 +170,13 @@ class IDS2017Dataset:
     def save_attributes_to_disk(self):
         print('saving attributes...')
 
-        path = '/home/nivgold/TTA-Anomaly-Detection/oversampling/out/ids2017_out/pkls'
-
         # save train
-        pd.to_pickle(self.train_features, path+"/train_features.pkl")
-        pd.to_pickle(self.train_labels, path+"/train_labels.pkl")
+        pd.to_pickle(self.train_features, self.disk_path+"/train_features_ids2017.pkl")
+        pd.to_pickle(self.train_labels, self.disk_path+"/train_labels_ids2017.pkl")
         # save test
-        pd.to_pickle(self.test_features, path+"/test_features.pkl")
-        pd.to_pickle(self.test_labels, path+"/test_labels.pkl")
+        pd.to_pickle(self.test_features, self.disk_path+"/test_features_ids2017.pkl")
+        pd.to_pickle(self.test_labels, self.disk_path+"/test_labels_ids2017.pkl")
+
 
 def df_to_dataset(data, labels, shuffle=False, batch_size=32):
     # df -> dataset -> cache -> shuffle -> batch -> prefetch
@@ -280,41 +220,3 @@ def get_dataset(data_path, batch_size, from_disk=True):
                .map(test_pack_features_vector))
 
     return train_ds, test_ds
-
-
-
-
-"""## If Necessary - Create Tensorflow Dataset"""
-
-# features_dict_values = [tf.float64 for i in range(features.shape[1])]
-# features_dict_keys = list(features.columns)
-
-# features_dict = dict(zip(features_dict_keys, features_dict_values))
-# features_dict["label"] = tfds.features.ClassLabel(num_classes=2)
-
-
-# class SSPD1DATASET(tfds.core.GeneratorBasedBuilder):
-#   """SSPD Flooding Attack against the DVR Server"""
-
-#   VERSION = tfds.core.Version('0.1.0')
-
-#   def _info(self):
-#     return tfds.core.DatasetInfo(
-#         builder=self,
-#         # This is the description that will appear on the datasets page.
-#         description=("SSPD Flooding Attack against the DVR Server"),
-#         # tfds.features.FeatureConnectors
-#         features=tfds.features.FeaturesDict(features_dict),
-#         # Homepage of the dataset for documentation
-#         homepage="https://drive.google.com/drive/u/1/folders/1o3J-0uJ-ZhR_ETVANGPmnOBwx4332vlw",
-#     )
-
-#   def _split_generators(self, dl_manager):
-#     # Downloads the data and defines the splits
-#     # dl_manager is a tfds.download.DownloadManager that can be used to
-#     # download and extract URLs
-#     pass  # TODO
-
-#   def _generate_examples(self):
-#     # Yields examples from the dataset
-#     yield 'key', {}
