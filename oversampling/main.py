@@ -16,9 +16,19 @@ def get_execute_time(start_time, end_time):
     print("{:0>2}:{:0>2}:{:05.2f}".format(int(hours), int(minutes), seconds))
 
 HOME_PATH = '/home/nivgold'
-EPOCHS = 1
+EPOCHS = 100
 IDS17_DIM = 77
 IDS18_DIM = 76
+
+# testing ids2017 dataset
+start_time = time.time()
+ids17_train_ds, ids17_test_ds = ids17.get_dataset(HOME_PATH, 32, from_disk=True)
+end_train_test = time.time()
+print("---IDS2018 train_ds, test_ds ready after: ", end='')
+get_execute_time(start_time, end_train_test)
+solver_obj = Solver(ids17_train_ds, ids17_test_ds, epochs=EPOCHS, features_dim=IDS17_DIM)
+encoder_path = '/home/nivgold/models/epochs_100_IDS17_encoder_weights.npy'
+decoder_path = '/home/nivgold/models/epochs_100_IDS17_decoder_weights.npy'
 
 # testing ids2018 dataset
 start_time = time.time()
@@ -26,8 +36,9 @@ ids18_train_ds, ids18_test_ds = ids18.get_dataset(HOME_PATH, 32, from_disk=True)
 end_train_test = time.time()
 print("---IDS2018 train_ds, test_ds ready after: ", end='')
 get_execute_time(start_time, end_train_test)
-
 solver_obj = Solver(ids18_train_ds, ids18_test_ds, epochs=EPOCHS, features_dim=IDS18_DIM)
+encoder_path = '/home/nivgold/models/epochs_100_IDS18_encoder_weights.npy'
+decoder_path = '/home/nivgold/models/epochs_100_IDS18_decoder_weights.npy'
 
 # # TRAINING
 # start_time = time.time()
@@ -39,11 +50,9 @@ solver_obj = Solver(ids18_train_ds, ids18_test_ds, epochs=EPOCHS, features_dim=I
 # # saving the trained weights
 # solver_obj.save_weights(path='/home/nivgold/models', dataset_name='IDS18')
 
-encoder_path = '/home/nivgold/models/epochs_100_IDS18_encoder_weights.npy'
-decoder_path = '/home/nivgold/models/epochs_100_IDS18_decoder_weights.npy'
 solver_obj.load_weights(encoder_path, decoder_path)
 
-# # TEST WTHOUT TTA
+# # TEST WITHOUT TTA
 # start_time = time.time()
 # print("Start testing...")
 # accuracy, precision, recall, f_score, auc = solver_obj.test()

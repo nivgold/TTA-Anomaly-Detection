@@ -31,7 +31,6 @@ class Solver:
         self.percentile = 70
 
         # show network architecrute
-        # enable GPU
         # setup tensorboard
 
     def save_weights(self, path, dataset_name):
@@ -40,10 +39,6 @@ class Solver:
 
         np.save(encoder_path, self.encoder.get_weights())
         np.save(decoder_path, self.decoder.get_weights())
-
-        print("In Save Method")
-        print(f"Encoder weights: {self.encoder.get_weights()}")
-        print(f"Decoder weights: {self.decoder.get_weights()}")
 
     def load_weights(self, encoder_path, decoder_path):
         self.encoder = Encoder(input_shape=self.features_dim)
