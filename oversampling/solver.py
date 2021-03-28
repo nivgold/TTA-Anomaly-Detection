@@ -256,7 +256,7 @@ class Solver:
             1: len_class_1
         }
 
-        osmp_obj = oversampling_method(sampling_strategy=oversampling_class_dict)
+        osmp_obj = oversampling_method(sampling_strategy=oversampling_class_dict, k_neighbors=len_class_0-1)
         X_res, y_res = osmp_obj.fit_resample(tta_features_full, tta_labels_full)
 
         return X_res[-num_augmentations:]
