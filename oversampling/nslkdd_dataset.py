@@ -61,6 +61,9 @@ class NSLKDDDataset:
             self.test_features = pd.read_pickle(disk_path+"/test_features_nslkdd.pkl")
             self.test_labels = pd.read_pickle(disk_path+"/test_labels_nslkdd.pkl")
 
+            self.train_features_full = pd.read_pickle(disk_path+"/train_features_full_nslkdd.pkl")
+            self.train_labels_full = pd.read_pickle(disk_path+"/train_labels_full_nslkdd.pkl")
+
         else:
             train_file_name = "KDDTrain+.txt"
             print(f'Openning {train_file_name}')
@@ -77,6 +80,9 @@ class NSLKDDDataset:
 
             # TRAIN
 
+            train_df_full = train_df.copy()
+            self.train_labels_full = train_df_full[label_col]
+            self.train_features_full = train_df_full.drop(columns=[label_col], axis=1)
             # filter out malicious aggregations (with label equal to 1)
             train_df = train_df[train_df[label_col] == 0]
             self.train_labels = train_df[label_col]
@@ -143,6 +149,10 @@ class NSLKDDDataset:
         pd.to_pickle(self.test_features, self.disk_path+"/test_features_nslkdd.pkl")
         pd.to_pickle(self.test_labels, self.disk_path+"/test_labels_nslkdd.pkl")
 
+        # save train full
+        pd.to_pickle(self.train_features_full, self.disk_path+"/train_features_full_nslkdd.pkl")
+        pd.to_pickle(self.train_labels_full, self.disk_path+"/train_labels_full_nslkdd.pkl")
+
 
 def df_to_dataset(data, labels, shuffle=False, batch_size=32):
     # df -> dataset -> cache -> shuffle -> batch -> prefetch
@@ -185,4 +195,10 @@ def get_dataset(data_path, batch_size, from_disk=True):
                .batch(batch_size)
                .map(test_pack_features_vector))
 
-    return train_ds, test_ds
+    train_full__ds = (tf.data.Dataset.from_tensor_slices(
+        (dict(nsl_dataset.train_features), nsl_dataset.train_labels))
+                .cache()
+                .batch(batch_size)
+                .map(train_pack_features_vector))
+
+    return train_ds, test_ds, train_full__ds

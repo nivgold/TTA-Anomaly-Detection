@@ -39,3 +39,6 @@ print("Y train shape: ", nslds.train_labels.shape)
 
 print("X test shape: ", nslds.test_features.shape)
 print("Y test shape: ", nslds.test_labels.shape)
+
+print("X train full: ", nslds.train_features_full.shape)
+print("Y train full: ", nslds.train_labels_full.shape)
