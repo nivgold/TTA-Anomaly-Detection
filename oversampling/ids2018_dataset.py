@@ -69,8 +69,8 @@ class IDS2018Dataset:
             self.test_features = pd.read_pickle(disk_path+"/test_features_ids2018.pkl")
             self.test_labels = pd.read_pickle(disk_path+"/test_labels_ids2018.pkl")
 
-            self.train_features_full = pd.read_pickle(disk_path + "/train_features_full_ids2018.pkl")
-            self.train_labels_full = pd.read_pickle(disk_path + "/train_labels_full_ids2018.pkl")
+            self.features_full = pd.read_pickle(disk_path + "/features_full_ids2018.pkl")
+            self.labels_full = pd.read_pickle(disk_path + "/labels_full_ids2018.pkl")
 
         else:
             # trying opening only the 3.3G file
@@ -80,13 +80,13 @@ class IDS2018Dataset:
             full_df = self.preprocessing(full_df)
             full_df = reduce_mem_usage(full_df)
 
+            self.labels_full = full_df['Label']
+            self.features_full = full_df.drop(columns=['Label'], axis=1)
+
             train_df, test_df = train_test_split(full_df, 0.3)
 
             # TRAIN
 
-            train_df_full = train_df.copy()
-            self.train_labels_full = train_df_full['Label']
-            self.train_features_full = train_df_full.drop(columns=['Label'], axis=1)
             # filter out malicious aggregations (with label equal to 1)
             print(f'number of train samples: {len(train_df[train_df.Label == 0])}')
             train_df = train_df[train_df['Label'] == 0]
@@ -174,8 +174,8 @@ class IDS2018Dataset:
         pd.to_pickle(self.test_labels, self.disk_path+"/test_labels_ids2018.pkl")
 
         # save train full
-        pd.to_pickle(self.train_features_full, self.disk_path + "/train_features_full_ids2018.pkl")
-        pd.to_pickle(self.train_labels_full, self.disk_path + "/train_labels_full_ids2018.pkl")
+        pd.to_pickle(self.features_full, self.disk_path + "/features_full_ids2018.pkl")
+        pd.to_pickle(self.labels_full, self.disk_path + "/labels_full_ids2018.pkl")
 
 def df_to_dataset(data, labels, shuffle=False, batch_size=32):
     # df -> dataset -> cache -> shuffle -> batch -> prefetch
@@ -216,4 +216,10 @@ def get_dataset(data_path, batch_size, from_disk=True):
                .batch(batch_size)
                .map(test_pack_features_vector))
 
-    return train_ds, test_ds
+    train_full_ds = (tf.data.Dataset.from_tensor_slices(
+        (dict(ids18.features_full), ids18.labels_full))
+                     .cache()
+                     .batch(batch_size)
+                     .map(train_pack_features_vector))
+
+    return train_ds, test_ds, train_full_ds

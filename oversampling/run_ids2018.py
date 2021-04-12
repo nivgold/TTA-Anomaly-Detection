@@ -1,4 +1,4 @@
-import ids2018_dataset as ids17
+import ids2018_dataset as ids18
 
 from solver import Solver
 import tensorflow as tf
@@ -16,9 +16,9 @@ HOME_PATH = '/home/nivgold'
 EPOCHS = 100
 IDS18_DIM = 76
 
-# testing ids2017 dataset
+# testing ids2018 dataset
 start_time = time.time()
-ids18_train_ds, ids18_test_ds = ids18.get_dataset(HOME_PATH, 32, from_disk=True)
+ids18_train_ds, ids18_test_ds, ids_full_ds = ids18.get_dataset(HOME_PATH, 32, from_disk=True)
 end_train_test = time.time()
 print("---IDS2018 train_ds, test_ds ready after: ", end='')
 get_execute_time(start_time, end_train_test)
@@ -53,7 +53,7 @@ num_augmentations = 2
 
 start_time = time.time()
 print(f"Start testing with TTA... \t {oversampling_method}, {num_neighbors} neighbors, {num_augmentations} TTA augmentations")
-accuracy, precision, recall, f_score, auc = solver_obj.test_tta(oversampling_method, num_neighbors=num_neighbors, num_augmentations=num_augmentations)
+accuracy, precision, recall, f_score, auc = solver_obj.test_tta(oversampling_method, num_neighbors=num_neighbors, num_augmentations=num_augmentations, knn_data=ids_full_ds)
 end_tta_testing = time.time()
 print("---TTA testing finished after: ", end='')
 get_execute_time(start_time, end_tta_testing)
