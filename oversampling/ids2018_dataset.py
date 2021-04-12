@@ -69,6 +69,9 @@ class IDS2018Dataset:
             self.test_features = pd.read_pickle(disk_path+"/test_features_ids2018.pkl")
             self.test_labels = pd.read_pickle(disk_path+"/test_labels_ids2018.pkl")
 
+            self.train_features_full = pd.read_pickle(disk_path + "/train_features_full_ids2018.pkl")
+            self.train_labels_full = pd.read_pickle(disk_path + "/train_labels_full_ids2018.pkl")
+
         else:
             # trying opening only the 3.3G file
             print(f'Openning {data_dir_path}')
@@ -81,6 +84,9 @@ class IDS2018Dataset:
 
             # TRAIN
 
+            train_df_full = train_df.copy()
+            self.train_labels_full = train_df_full['Label']
+            self.train_features_full = train_df_full.drop(columns=['Label'], axis=1)
             # filter out malicious aggregations (with label equal to 1)
             print(f'number of train samples: {len(train_df[train_df.Label == 0])}')
             train_df = train_df[train_df['Label'] == 0]
@@ -166,6 +172,10 @@ class IDS2018Dataset:
         # save test
         pd.to_pickle(self.test_features, self.disk_path+"/test_features_ids2018.pkl")
         pd.to_pickle(self.test_labels, self.disk_path+"/test_labels_ids2018.pkl")
+
+        # save train full
+        pd.to_pickle(self.train_features_full, self.disk_path + "/train_features_full_ids2018.pkl")
+        pd.to_pickle(self.train_labels_full, self.disk_path + "/train_labels_full_ids2018.pkl")
 
 def df_to_dataset(data, labels, shuffle=False, batch_size=32):
     # df -> dataset -> cache -> shuffle -> batch -> prefetch
