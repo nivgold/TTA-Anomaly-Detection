@@ -146,7 +146,7 @@ class Solver:
         return methods_dict[method_name]
 
 
-    def test_tta(self, method_name, num_neighbors, num_augmentations):
+    def test_tta(self, method_name, num_neighbors, num_augmentations, knn_data=None):
 
         # loss function - with reduction equals to `NONE` in order to get the loss of every test example
         self.loss_func = tf.keras.losses.MeanSquaredError(reduction=tf.keras.losses.Reduction.NONE)
@@ -172,7 +172,17 @@ class Solver:
         oversampling_method = self.get_oversampling_method(method_name)[0]
 
         # if SMOTE is the augmentation method -> training KNN model with training samples (RAPIDS KNN IMPLEMENTATION)
-        X_rapids = cudf.DataFrame(X_train)
+        if knn_data is not None:
+            print("fitting KNN with full training dataset")
+            X_knn_data = []
+            for x_batch_knn_data, y_batch_knn_data in knn_data:
+                X_knn_data.append(x_batch_knn_data)
+            X_knn_data = np.concatenate(X_knn_data, axis=0)
+
+            X_rapids = cudf.DataFrame(X_knn_data)
+        else:
+            print("fitting KNN with only normal training dataset")
+            X_rapids = cudf.DataFrame(X_train)
         knn_model = cuNearestNeighbors(n_neighbors=num_neighbors)
 
         knn_model.fit(X_rapids)
