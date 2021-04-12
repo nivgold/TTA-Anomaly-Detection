@@ -18,7 +18,7 @@ NSLKDD_DIM = 38
 
 # testing ids2017 dataset
 start_time = time.time()
-nsl_train_ds, nsl_test_ds = nslmd.get_dataset(HOME_PATH, 32, from_disk=True)
+nsl_train_ds, nsl_test_ds, nsl_train_full_ds = nslmd.get_dataset(HOME_PATH, 32, from_disk=True)
 end_train_test = time.time()
 print("--NSLKDD train_ds, test_ds ready after: ", end='')
 get_execute_time(start_time, end_train_test)
@@ -48,12 +48,12 @@ get_execute_time(start_time, end_testing)
 
 # TEST WITH TTA
 oversampling_method = "smote"
-num_neighbors = 5
-num_augmentations = 2
+num_neighbors = 50
+num_augmentations = 15
 
 start_time = time.time()
 print(f"Start testing with TTA... \t {oversampling_method}, {num_neighbors} neighbors, {num_augmentations} TTA augmentations")
-accuracy, precision, recall, f_score, auc = solver_obj.test_tta(oversampling_method, num_neighbors=num_neighbors, num_augmentations=num_augmentations)
+accuracy, precision, recall, f_score, auc = solver_obj.test_tta(oversampling_method, num_neighbors=num_neighbors, num_augmentations=num_augmentations, knn_data=nsl_train_full_ds)
 end_tta_testing = time.time()
 print("---TTA testing finished after: ", end='')
 get_execute_time(start_time, end_tta_testing)
