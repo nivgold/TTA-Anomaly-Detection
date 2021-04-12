@@ -26,6 +26,9 @@ solver_obj = Solver(nsl_train_ds, nsl_test_ds, epochs=EPOCHS, features_dim=NSLKD
 encoder_path = '/home/nivgold/models/epochs_300_NSLKDD_encoder_weights.npy'
 decoder_path = '/home/nivgold/models/epochs_300_NSLKDD_decoder_weights.npy'
 
+# print("NSL train size: ", tf.data.experimental.cardinality(nsl_train_ds).numpy()*32)
+# print("NSL train_full_ds size: ", tf.data.experimental.cardinality(nsl_train_full_ds).numpy()*32)
+
 # # TRAINING
 # start_time = time.time()
 # print("Start training...")
@@ -48,8 +51,8 @@ get_execute_time(start_time, end_testing)
 
 # TEST WITH TTA
 oversampling_method = "smote"
-num_neighbors = 50
-num_augmentations = 15
+num_neighbors = 5
+num_augmentations = 2
 
 start_time = time.time()
 print(f"Start testing with TTA... \t {oversampling_method}, {num_neighbors} neighbors, {num_augmentations} TTA augmentations")

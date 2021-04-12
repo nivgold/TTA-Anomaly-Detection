@@ -196,7 +196,7 @@ def get_dataset(data_path, batch_size, from_disk=True):
                .map(test_pack_features_vector))
 
     train_full_ds = (tf.data.Dataset.from_tensor_slices(
-        (dict(nsl_dataset.train_features), nsl_dataset.train_labels))
+        (dict(nsl_dataset.train_features_full), nsl_dataset.train_labels_full))
                 .cache()
                 .batch(batch_size)
                 .map(train_pack_features_vector))
