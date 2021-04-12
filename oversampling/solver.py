@@ -6,6 +6,7 @@ import tensorflow as tf
 
 import cudf, cuml
 from cuml.neighbors import NearestNeighbors as cuNearestNeighbors
+from cuml.cluster import KMeans
 
 from autoencdoer_model import *
 
@@ -183,6 +184,7 @@ class Solver:
         else:
             print("fitting KNN with only normal training dataset")
             X_rapids = cudf.DataFrame(X_train)
+            X_knn_data = X_train
         knn_model = cuNearestNeighbors(n_neighbors=num_neighbors)
 
         knn_model.fit(X_rapids)
@@ -209,12 +211,15 @@ class Solver:
             neighbors_indices = np.squeeze(neighbors_indices)
 
             # tta_features_batch: ndarray of shape (batch_size, num_dataset_features)
-            neighbors_batch_features = X_train[neighbors_indices]
-            neighbors_batch_labels = y_train[neighbors_indices]
+            neighbors_batch_features = X_knn_data[neighbors_indices]
 
             tta_reconstruction = []
-            for neighbors_features, neighbors_labels in list(zip(neighbors_batch_features, neighbors_batch_labels)):
-                tta_features = self.get_oversampling_tta_sample(neighbors_features, neighbors_labels, num_augmentations, oversampling_method, fake_tta_features, fake_tta_labels)
+            for neighbors_features in neighbors_batch_features:
+                # tta_features = self.get_oversampling_tta_sample(neighbors_features, neighbors_labels, num_augmentations, oversampling_method, fake_tta_features, fake_tta_labels)
+                k_means = KMeans(n_clusters=num_augmentations)
+                neighbors_features = neighbors_features.astype(np.float32)
+                k_means.fit(neighbors_features)
+                tta_features = k_means.cluster_centers_
 
                 # making the test phase for the tta sample
                 tta_reconstruction_loss = self.test_step(tta_features).numpy()
