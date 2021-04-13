@@ -69,6 +69,9 @@ class IDS2017Dataset:
             self.test_features = pd.read_pickle(disk_path+"/test_features_ids2017.pkl")
             self.test_labels = pd.read_pickle(disk_path+"/test_labels_ids2017.pkl")
 
+            self.train_features_full = pd.read_pickle(disk_path + "/train_features_full_ids2017.pkl")
+            self.train_labels_full = pd.read_pickle(disk_path + "/train_labels_full_ids2017.pkl")
+
         else:
             df_list = []
             for file_name in os.listdir(data_dir_path):
@@ -93,7 +96,9 @@ class IDS2017Dataset:
             train_df, test_df = train_test_split(full_df, 0.7)
 
             # TRAIN
-
+            train_df_full = train_df.copy()
+            self.train_labels_full = train_df_full[' Label']
+            self.train_features_full = train_df_full.drop(columns=[' Label'], axis=1)
             # filter out malicious aggregations (with label equal to 1)
             train_df = train_df[train_df[' Label'] == 0]
             self.train_labels = train_df[' Label']
@@ -176,6 +181,9 @@ class IDS2017Dataset:
         # save test
         pd.to_pickle(self.test_features, self.disk_path+"/test_features_ids2017.pkl")
         pd.to_pickle(self.test_labels, self.disk_path+"/test_labels_ids2017.pkl")
+        # save train full
+        pd.to_pickle(self.train_features_full, self.disk_path + "/train_features_full_ids2017.pkl")
+        pd.to_pickle(self.train_labels_full, self.disk_path + "/train_labels_full_ids2017.pkl")
 
 
 def df_to_dataset(data, labels, shuffle=False, batch_size=32):
@@ -219,4 +227,4 @@ def get_dataset(data_path, batch_size, from_disk=True):
                .batch(batch_size)
                .map(test_pack_features_vector))
 
-    return train_ds, test_ds
+    return train_ds, test_ds, ids17.train_features_full.values
