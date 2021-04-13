@@ -216,10 +216,10 @@ def get_dataset(data_path, batch_size, from_disk=True):
                .batch(batch_size)
                .map(test_pack_features_vector))
 
-    train_full_ds = (tf.data.Dataset.from_tensor_slices(
-        (dict(ids18.features_full), ids18.labels_full))
-                     .cache()
-                     .batch(batch_size)
-                     .map(train_pack_features_vector))
+    # train_full_ds = (tf.data.Dataset.from_tensor_slices(
+    #     (dict(ids18.features_full), ids18.labels_full))
+    #                  .cache()
+    #                  .batch(batch_size)
+    #                  .map(train_pack_features_vector))
 
-    return train_ds, test_ds, train_full_ds
+    return train_ds, test_ds, ids18.features_full.values

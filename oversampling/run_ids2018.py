@@ -18,7 +18,7 @@ IDS18_DIM = 76
 
 # testing ids2018 dataset
 start_time = time.time()
-ids18_train_ds, ids18_test_ds, ids_full_ds = ids18.get_dataset(HOME_PATH, 32, from_disk=True)
+ids18_train_ds, ids18_test_ds, ids18_features_full = ids18.get_dataset(HOME_PATH, 32, from_disk=True)
 end_train_test = time.time()
 print("---IDS2018 train_ds, test_ds ready after: ", end='')
 get_execute_time(start_time, end_train_test)
@@ -26,15 +26,15 @@ solver_obj = Solver(ids18_train_ds, ids18_test_ds, epochs=EPOCHS, features_dim=I
 encoder_path = '/home/nivgold/models/epochs_100_IDS18_encoder_weights.npy'
 decoder_path = '/home/nivgold/models/epochs_100_IDS18_decoder_weights.npy'
 
-# TRAINING
-start_time = time.time()
-print("Start training...")
-solver_obj.train()
-end_training = time.time()
-print("---training finished after: ", end='')
-get_execute_time(start_time, end_training)
-# saving the trained weights
-solver_obj.save_weights(path='/home/nivgold/models', dataset_name='IDS18')
+# # TRAINING
+# start_time = time.time()
+# print("Start training...")
+# solver_obj.train()
+# end_training = time.time()
+# print("---training finished after: ", end='')
+# get_execute_time(start_time, end_training)
+# # saving the trained weights
+# solver_obj.save_weights(path='/home/nivgold/models', dataset_name='IDS18')
 
 solver_obj.load_weights(encoder_path, decoder_path)
 
@@ -53,7 +53,7 @@ num_augmentations = 2
 
 start_time = time.time()
 print(f"Start testing with TTA... \t {oversampling_method}, {num_neighbors} neighbors, {num_augmentations} TTA augmentations")
-accuracy, precision, recall, f_score, auc = solver_obj.test_tta(oversampling_method, num_neighbors=num_neighbors, num_augmentations=num_augmentations, knn_data=ids_full_ds)
+accuracy, precision, recall, f_score, auc = solver_obj.test_tta(oversampling_method, num_neighbors=num_neighbors, num_augmentations=num_augmentations, knn_data=ids18_features_full)
 end_tta_testing = time.time()
 print("---TTA testing finished after: ", end='')
 get_execute_time(start_time, end_tta_testing)
