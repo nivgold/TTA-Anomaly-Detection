@@ -104,7 +104,6 @@ class NSLKDDDataset:
             # saving the attributes to disk
             self.save_attributes_to_disk()
 
-    # TODO: complete preprocessing for NLS-KDD Dataset
     def preprocessing(self, data):
 
         def _normalize_columns(df):
