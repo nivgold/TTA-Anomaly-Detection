@@ -92,7 +92,6 @@ class Solver:
 
 
     def test(self):
-
         # loss function - with reduction equals to `NONE` in order to get the loss of every test example
         self.loss_func = tf.keras.losses.MeanSquaredError(reduction=tf.keras.losses.Reduction.NONE)
 
@@ -147,52 +146,42 @@ class Solver:
         return methods_dict[method_name]
 
 
-    def test_tta(self, method_name, num_neighbors, num_augmentations, knn_data=None):
+    def test_tta(self, method_name, num_neighbors, num_augmentations, knn_data):
 
         # loss function - with reduction equals to `NONE` in order to get the loss of every test example
         self.loss_func = tf.keras.losses.MeanSquaredError(reduction=tf.keras.losses.Reduction.NONE)
 
         # iterating through the train to calculate the loss of every train instance
         train_loss = []
-        X_train_list = []
-        y_train_list = []
+        # X_train_list = []
+        # y_train_list = []
         for step, (x_batch_train, y_batch_train) in enumerate(self.train_ds):
             loss = self.test_step(x_batch_train)
             train_loss.append(loss.numpy())
 
-            X_train_list.append(x_batch_train)
-            y_train_list.append(y_batch_train)
+            # X_train_list.append(x_batch_train)
+            # y_train_list.append(y_batch_train)
 
         print("Done iterating through all training set")
 
         # adjusting X to be: ndarray of shape (num_dataset_samples, num_dataset_features)
-        X_train = np.concatenate(X_train_list, axis=0)
-        y_train = np.concatenate(y_train_list, axis=0)
+        # X_train = np.concatenate(X_train_list, axis=0)
+        # y_train = np.concatenate(y_train_list, axis=0)
 
-        # decide the oversampling method
-        oversampling_method = self.get_oversampling_method(method_name)[0]
+        # # decide the oversampling method
+        # oversampling_method = self.get_oversampling_method(method_name)[0]
 
         # if SMOTE is the augmentation method -> training KNN model with training samples (RAPIDS KNN IMPLEMENTATION)
-        if knn_data is not None:
-            print("fitting KNN with full training dataset")
-            X_knn_data = []
-            for x_batch_knn_data, y_batch_knn_data in knn_data:
-                X_knn_data.append(x_batch_knn_data)
-            X_knn_data = np.concatenate(X_knn_data, axis=0)
+        X_rapids = cudf.DataFrame(knn_data)
 
-            X_rapids = cudf.DataFrame(X_knn_data)
-        else:
-            print("fitting KNN with only normal training dataset")
-            X_rapids = cudf.DataFrame(X_train)
-            X_knn_data = X_train
         knn_model = cuNearestNeighbors(n_neighbors=num_neighbors)
-
+        print("Start fitting KNN")
         knn_model.fit(X_rapids)
         print("KNN model is fitted")
 
         # prepare fake tta features and labels
-        fake_tta_features = np.zeros((num_neighbors + num_augmentations, self.features_dim))
-        fake_tta_labels = np.ones((fake_tta_features.shape[0]))
+        # fake_tta_features = np.zeros((num_neighbors + num_augmentations, self.features_dim))
+        # fake_tta_labels = np.ones((fake_tta_features.shape[0]))
 
         # iterating through the test to calculate the loss of every test instance
         test_loss = []
@@ -204,14 +193,12 @@ class Solver:
             reconstruction_loss = self.test_step(x_batch_test).numpy()
             test_labels.append(y_batch_test.numpy())
 
-            # TODO: the tta_features_batch shape is: (batch_size, num_of_augmentations, num_dataset_features)
-
             # neighbors_indices: ndarray of shape (batch_size, num_of_augmentations)
             neighbors_indices = knn_model.kneighbors(np.array(x_batch_test), return_distance=False)
             neighbors_indices = np.squeeze(neighbors_indices)
 
             # tta_features_batch: ndarray of shape (batch_size, num_dataset_features)
-            neighbors_batch_features = X_knn_data[neighbors_indices]
+            neighbors_batch_features = knn_data[neighbors_indices]
 
             tta_reconstruction = []
             for neighbors_features in neighbors_batch_features:
