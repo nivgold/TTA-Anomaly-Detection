@@ -22,8 +22,9 @@ end_train_test = time.time()
 print("---CreditCard train_ds, test_ds ready after: ", end='')
 get_execute_time(start_time, end_train_test)
 solver_obj = Solver(creditcard_train_ds, creditcard_test_ds, epochs=EPOCHS, features_dim=CREDITCARD_DIM)
-encoder_path = '/home/nivgold/models/epochs_100_creditcard_encoder_weights.npy'
-decoder_path = '/home/nivgold/models/epochs_100_creditcard_decoder_weights.npy'
+dataset_name = 'creditcard'
+encoder_path = f'/home/nivgold/models/epochs_{EPOCHS}_{dataset_name}_encoder_weights.npy'
+decoder_path = f'/home/nivgold/models/epochs_{EPOCHS}_{dataset_name}_decoder_weights.npy'
 
 # TRAINING
 start_time = time.time()
@@ -33,7 +34,7 @@ end_training = time.time()
 print("---training finished after: ", end='')
 get_execute_time(start_time, end_training)
 # saving the trained weights
-solver_obj.save_weights(path='/home/nivgold/models', dataset_name='creditcard')
+solver_obj.save_weights(path='/home/nivgold/models', dataset_name=dataset_name)
 
 # solver_obj.load_weights(encoder_path, decoder_path)
 #
