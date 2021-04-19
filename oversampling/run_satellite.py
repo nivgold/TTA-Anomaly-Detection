@@ -13,7 +13,7 @@ def get_execute_time(start_time, end_time):
     print("{:0>2}:{:0>2}:{:05.2f}".format(int(hours), int(minutes), seconds))
 
 HOME_PATH = '/home/nivgold'
-EPOCHS = 100
+EPOCHS = 500
 SATELLITE_DIM = 36
 
 start_time = time.time()
