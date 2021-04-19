@@ -64,6 +64,9 @@ class NSLKDDDataset:
             self.train_features_full = pd.read_pickle(disk_path+"/train_features_full_nslkdd.pkl")
             self.train_labels_full = pd.read_pickle(disk_path+"/train_labels_full_nslkdd.pkl")
 
+            self.features_full = pd.read_pickle(disk_path+"/features_full_nslkdd.pkl")
+            self.labels_full = pd.read_pickle(disk_path+"/labels_full_nslkdd.pkl")
+
         else:
             train_file_name = "KDDTrain+.txt"
             print(f'Openning {train_file_name}')
@@ -100,6 +103,10 @@ class NSLKDDDataset:
 
             self.test_labels = test_df[label_col]
             self.test_features = test_df.drop(columns=[label_col], axis=1)
+
+            # Full Data
+            self.features_full = pd.concat([self.train_features_full, self.test_features], axis=0)
+            self.labels_full = pd.concat([self.train_labels_full, self.test_labels], axis=0)
 
             # saving the attributes to disk
             self.save_attributes_to_disk()
@@ -152,6 +159,10 @@ class NSLKDDDataset:
         pd.to_pickle(self.train_features_full, self.disk_path+"/train_features_full_nslkdd.pkl")
         pd.to_pickle(self.train_labels_full, self.disk_path+"/train_labels_full_nslkdd.pkl")
 
+        # save full data
+        pd.to_pickle(self.features_full, self.disk_path + "/features_full_nslkdd.pkl")
+        pd.to_pickle(self.labels_full, self.disk_path + "/labels_full_nslkdd.pkl")
+
 
 def df_to_dataset(data, labels, shuffle=False, batch_size=32):
     # df -> dataset -> cache -> shuffle -> batch -> prefetch
@@ -194,10 +205,4 @@ def get_dataset(data_path, batch_size, from_disk=True):
                .batch(batch_size)
                .map(test_pack_features_vector))
 
-    # train_full_ds = (tf.data.Dataset.from_tensor_slices(
-    #     (dict(nsl_dataset.train_features_full), nsl_dataset.train_labels_full))
-    #             .cache()
-    #             .batch(batch_size)
-    #             .map(train_pack_features_vector))
-
-    return train_ds, test_ds, nsl_dataset.train_features_full.values
+    return train_ds, test_ds, nsl_dataset.train_features_full.values, nsl_dataset.features_full.values
