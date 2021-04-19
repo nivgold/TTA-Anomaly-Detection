@@ -73,14 +73,14 @@ class CardioDataset:
             self.labels_full = pd.read_pickle(disk_path + "/labels_full_cardio.pkl")
 
         else:
-            file_name = 'CTG.csv'
+            file_name = 'cardio.csv'
             data_path = os.path.join(data_dir_path, file_name)
             print(f'Openning {file_name}')
             full_df = pd.read_csv(data_path)
             full_df = self.preprocessing(full_df)
             full_df = reduce_mem_usage(full_df)
 
-            label_col = 'NSP'
+            label_col = '21'
 
             self.labels_full = full_df[label_col]
             self.features_full = full_df.drop(columns=[label_col], axis=1)
@@ -112,13 +112,12 @@ class CardioDataset:
             return df
 
         def _agg_df(df):
-            target_col = 'NSP'
+            target_col = '21'
 
-            df = df[df[target_col].isin([1, 3])]
-            df = df.copy()
-            df[target_col] = np.where(df[target_col] == 3, 1, 0)
+            # df[target_col] = np.where(df[target_col] == 3, 1, 0)
 
-            desired_cols = ['LB', 'AC', 'FM', 'UC', 'DL', 'DS', 'DP', 'ASTV', 'MSTV', 'ALTV', 'MLTV', 'Width', 'Min', 'Max', 'Nmax', 'Nzeros', 'Mode', 'Mean', 'Median', 'Variance', 'Tendency']
+            desired_cols = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12',
+                '13', '14', '15', '16', '17', '18', '19', '20']
 
             df = df[desired_cols + [target_col]]
 
