@@ -143,14 +143,14 @@ class SatelliteDataset:
         print('saving attributes...')
 
         # save train
-        pd.to_pickle(self.train_features, self.disk_path+"/train_features_creditcard.pkl")
-        pd.to_pickle(self.train_labels, self.disk_path+"/train_labels_creditcard.pkl")
+        pd.to_pickle(self.train_features, self.disk_path+"/train_features_satellite.pkl")
+        pd.to_pickle(self.train_labels, self.disk_path+"/train_labels_satellite.pkl")
         # save test
-        pd.to_pickle(self.test_features, self.disk_path+"/test_features_creditcard.pkl")
-        pd.to_pickle(self.test_labels, self.disk_path+"/test_labels_creditcard.pkl")
+        pd.to_pickle(self.test_features, self.disk_path+"/test_features_satellite.pkl")
+        pd.to_pickle(self.test_labels, self.disk_path+"/test_labels_satellite.pkl")
         # save train full
-        pd.to_pickle(self.features_full, self.disk_path + "/features_full_creditcard.pkl")
-        pd.to_pickle(self.labels_full, self.disk_path + "/labels_full_creditcard.pkl")
+        pd.to_pickle(self.features_full, self.disk_path + "/features_full_satellite.pkl")
+        pd.to_pickle(self.labels_full, self.disk_path + "/labels_full_satellite.pkl")
 
 
 def df_to_dataset(data, labels, shuffle=False, batch_size=32):
