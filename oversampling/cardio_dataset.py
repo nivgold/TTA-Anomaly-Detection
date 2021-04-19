@@ -48,9 +48,11 @@ def reduce_mem_usage(df):
 
 
 def train_test_split(full_df, train_ratio=0.7):
-    train_last_idx = int(len(full_df) * train_ratio)
-    train_df = full_df.iloc[:train_last_idx, :]
-    test_df = full_df.iloc[train_last_idx:, :]
+    # train_last_idx = int(len(full_df) * train_ratio)
+    # train_df = full_df.iloc[:train_last_idx, :]
+    # test_df = full_df.iloc[train_last_idx:, :]
+    train_df = full_df.sample(frac=train_ratio, random_state=42)
+    test_df = full_df.drop(train_df.index)
 
     return train_df, test_df
 
@@ -85,7 +87,7 @@ class CardioDataset:
             self.labels_full = full_df[label_col]
             self.features_full = full_df.drop(columns=[label_col], axis=1)
 
-            train_df, test_df = train_test_split(full_df)
+            train_df, test_df = train_test_split(full_df, 0.5)
 
             # TRAIN
 
