@@ -16,7 +16,6 @@ HOME_PATH = '/home/nivgold'
 EPOCHS = 100
 CREDITCARD_DIM = 29
 
-# testing ids2017 dataset
 start_time = time.time()
 creditcard_train_ds, creditcard_test_ds, creditcard_features_full = cc.get_dataset(HOME_PATH, 32, from_disk=True)
 end_train_test = time.time()
