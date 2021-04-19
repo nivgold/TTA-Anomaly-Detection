@@ -14,16 +14,17 @@ def get_execute_time(start_time, end_time):
 
 HOME_PATH = '/home/nivgold'
 EPOCHS = 100
-IDS18_DIM = 36
+SATELLITE_DIM = 36
 
 start_time = time.time()
 satellite_train_ds, satellite_test_ds, satellite_features_full = sd.get_dataset(HOME_PATH, 32, from_disk=True)
 end_train_test = time.time()
 print("---IDS2018 train_ds, test_ds ready after: ", end='')
 get_execute_time(start_time, end_train_test)
-solver_obj = Solver(satellite_train_ds, satellite_test_ds, epochs=EPOCHS, features_dim=IDS18_DIM)
-encoder_path = '/home/nivgold/models/epochs_100_satellite_encoder_weights.npy'
-decoder_path = '/home/nivgold/models/epochs_100_satellite_decoder_weights.npy'
+solver_obj = Solver(satellite_train_ds, satellite_test_ds, epochs=EPOCHS, features_dim=SATELLITE_DIM)
+dataset_name = 'satellite'
+encoder_path = f'/home/nivgold/models/epochs_{EPOCHS}_{dataset_name}_encoder_weights.npy'
+decoder_path = f'/home/nivgold/models/epochs_{EPOCHS}_{dataset_name}_decoder_weights.npy'
 
 # TRAINING
 start_time = time.time()
@@ -33,7 +34,7 @@ end_training = time.time()
 print("---training finished after: ", end='')
 get_execute_time(start_time, end_training)
 # saving the trained weights
-solver_obj.save_weights(path='/home/nivgold/models', dataset_name='satellite')
+solver_obj.save_weights(path='/home/nivgold/models', dataset_name=dataset_name)
 
 # solver_obj.load_weights(encoder_path, decoder_path)
 #
