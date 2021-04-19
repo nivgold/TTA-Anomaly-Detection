@@ -48,9 +48,11 @@ def reduce_mem_usage(df):
 
 
 def train_test_split(full_df, train_ratio=0.7):
-    train_last_idx = int(len(full_df) * train_ratio)
-    train_df = full_df.iloc[:train_last_idx, :]
-    test_df = full_df.iloc[train_last_idx:, :]
+    # train_last_idx = int(len(full_df) * train_ratio)
+    # train_df = full_df.iloc[:train_last_idx, :]
+    # test_df = full_df.iloc[train_last_idx:, :]
+    train_df = full_df.sample(frac=train_ratio, random_state=42)
+    test_df = full_df.drop(train_df.index)
 
     return train_df, test_df
 
@@ -73,19 +75,19 @@ class LymphoDataset:
             self.labels_full = pd.read_pickle(disk_path + "/labels_full_lympho.pkl")
 
         else:
-            file_name = 'lymphography.data'
+            file_name = 'lympho.csv'
             data_path = os.path.join(data_dir_path, file_name)
             print(f'Openning {file_name}')
-            full_df = pd.read_csv(data_path, header=None)
+            full_df = pd.read_csv(data_path)
             full_df = self.preprocessing(full_df)
             full_df = reduce_mem_usage(full_df)
 
-            label_col = 0
+            label_col = '18'
 
             self.labels_full = full_df[label_col]
             self.features_full = full_df.drop(columns=[label_col], axis=1)
 
-            train_df, test_df = train_test_split(full_df)
+            train_df, test_df = train_test_split(full_df, 0.5)
 
             # TRAIN
 
@@ -112,11 +114,10 @@ class LymphoDataset:
             return df
 
         def _agg_df(df):
-            target_col = 0
+            target_col = '18'
 
-            df[target_col] = np.where(df[target_col].isin([1, 4]), 0, 1)
-
-            desired_cols = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18]
+            desired_cols = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12',
+                '13', '14', '15', '16', '17']
 
             df = df[desired_cols + [target_col]]
 
