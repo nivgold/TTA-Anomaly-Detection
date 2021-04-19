@@ -179,19 +179,19 @@ def test_pack_features_vector(features, labels):
 def get_dataset(data_path, batch_size, from_disk=True):
     # load the features and the labels and convert them to tf.Dataset (train and test)
     satellite = SatelliteDataset(data_path, from_disk=from_disk)
-    print("loaded CreditCardDataset")
+
     # train_ds = df_to_dataset(data=ids17.train_features, labels=ids17.train_labels, shuffle=shuffle, batch_size=batch_size).map(pack_features_vector)
     train_ds = (tf.data.Dataset.from_tensor_slices(
         (dict(satellite.train_features), satellite.train_labels))
                 .cache()
                 .batch(batch_size)
                 .map(train_pack_features_vector))
-    print("created TrainDS")
+
     # test_ds = df_to_dataset(data=ids17.test_features, labels=ids17.test_labels, shuffle=shuffle, batch_size=batch_size).map(pack_features_vector)
     test_ds = (tf.data.Dataset.from_tensor_slices(
         (dict(satellite.test_features), satellite.test_labels))
                .cache()
                .batch(batch_size)
                .map(test_pack_features_vector))
-    print("created TestDS")
+
     return train_ds, test_ds, satellite.features_full.values

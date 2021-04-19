@@ -16,7 +16,6 @@ HOME_PATH = '/home/nivgold'
 EPOCHS = 100
 IDS18_DIM = 36
 
-# testing ids2018 dataset
 start_time = time.time()
 satellite_train_ds, satellite_test_ds, satellite_features_full = sd.get_dataset(HOME_PATH, 32, from_disk=True)
 end_train_test = time.time()
