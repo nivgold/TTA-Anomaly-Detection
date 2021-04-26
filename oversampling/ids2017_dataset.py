@@ -72,6 +72,9 @@ class IDS2017Dataset:
             self.train_features_full = pd.read_pickle(disk_path + "/train_features_full_ids2017.pkl")
             self.train_labels_full = pd.read_pickle(disk_path + "/train_labels_full_ids2017.pkl")
 
+            self.features_full = pd.read_pickle(disk_path + "/features_full_ids2017.pkl")
+            self.labels_full = pd.read_pickle(disk_path + "/labels_full_ids2017.pkl")
+
         else:
             df_list = []
             for file_name in os.listdir(data_dir_path):
@@ -87,6 +90,9 @@ class IDS2017Dataset:
             full_df = reduce_mem_usage(full_df)
 
             self.full_df = full_df
+
+            self.features_full = full_df.drop(columns=[' Label'], axis=1)
+            self.labels_full = full_df[' Label']
 
             # compute anomlay percentage
             label_col = full_df[' Label']
@@ -184,6 +190,9 @@ class IDS2017Dataset:
         # save train full
         pd.to_pickle(self.train_features_full, self.disk_path + "/train_features_full_ids2017.pkl")
         pd.to_pickle(self.train_labels_full, self.disk_path + "/train_labels_full_ids2017.pkl")
+        # save full data
+        pd.to_pickle(self.features_full, self.disk_path + "/features_full_ids2017.pkl")
+        pd.to_pickle(self.labels_full, self.disk_path + "/labels_full_ids2017.pkl")
 
 
 def df_to_dataset(data, labels, shuffle=False, batch_size=32):
@@ -227,4 +236,4 @@ def get_dataset(data_path, batch_size, from_disk=True):
                .batch(batch_size)
                .map(test_pack_features_vector))
 
-    return train_ds, test_ds, ids17.train_features_full.values
+    return train_ds, test_ds, ids17.train_features_full.values, ids17.features_full.values

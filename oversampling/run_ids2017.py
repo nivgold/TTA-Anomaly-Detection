@@ -18,7 +18,7 @@ IDS17_DIM = 77
 
 # testing ids2017 dataset
 start_time = time.time()
-ids17_train_ds, ids17_test_ds, ids17_train_full_ds = ids17.get_dataset(HOME_PATH, 32, from_disk=True)
+ids17_train_ds, ids17_test_ds, ids17_train_full_ds, ids17_features_full = ids17.get_dataset(HOME_PATH, 32, from_disk=True)
 end_train_test = time.time()
 print("---IDS2017 train_ds, test_ds ready after: ", end='')
 get_execute_time(start_time, end_train_test)
@@ -53,7 +53,7 @@ num_augmentations = 2
 
 start_time = time.time()
 print(f"Start testing with TTA... \t {oversampling_method}, {num_neighbors} neighbors, {num_augmentations} TTA augmentations")
-accuracy, precision, recall, f_score, auc = solver_obj.test_tta(oversampling_method, num_neighbors=num_neighbors, num_augmentations=num_augmentations, knn_data=ids17_train_full_ds)
+accuracy, precision, recall, f_score, auc = solver_obj.test_tta(oversampling_method, num_neighbors=num_neighbors, num_augmentations=num_augmentations, knn_data=ids17_features_full)
 end_tta_testing = time.time()
 print("---TTA testing finished after: ", end='')
 get_execute_time(start_time, end_tta_testing)
