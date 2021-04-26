@@ -16,15 +16,15 @@ import cudf, cuml
 from cuml.neighbors import NearestNeighbors as cuNearestNeighbors
 from cuml.cluster import KMeans
 
-DATA_PATH_2017 = "/home/nivgold/TrafficLabelling"
-DATA_PATH_2018 = "/home/nivgold/IT/Processed Traffic Data for ML Algorithms/Thuesday-20-02-2018_TrafficForML_CICFlowMeter.csv"
-DATA_PATH_NSLKDD = "/home/nivgold/NSL-KDD"
-DATA_PATH_CREDITCARD = '/home/nivgold/Credit-Card-Fraud'
-DATA_PATH_SATELLITE = '/home/nivgold/Satellite'
-DATA_PATH_LYMPHO = '/home/nivgold/Lymphography'
-DATA_PATH_CARDIO = '/home/nivgold/Cardiotocography'
-DATA_PATH_THYROID = '/home/nivgold/Thyroid'
-DATA_PATH_MAMMO = '/home/nivgold/Mammography'
+DATA_PATH_2017 = "/home/nivgold/datasets/IDS2017"
+DATA_PATH_2018 = "/home/nivgold/datasets/IDS2018/Processed Traffic Data for ML Algorithms/Thuesday-20-02-2018_TrafficForML_CICFlowMeter.csv"
+DATA_PATH_NSLKDD = "/home/nivgold/datasets/NSL-KDD"
+DATA_PATH_CREDITCARD = '/home/nivgold/datasets/Credit-Card-Fraud'
+DATA_PATH_SATELLITE = '/home/nivgold/datasets/Satellite'
+DATA_PATH_LYMPHO = '/home/nivgold/datasets/Lymphography'
+DATA_PATH_CARDIO = '/home/nivgold/datasets/Cardiotocography'
+DATA_PATH_THYROID = '/home/nivgold/datasets/Thyroid'
+DATA_PATH_MAMMO = '/home/nivgold/datasets/Mammography'
 
 # ----------------------------------------------------------------------------------------------------------------------
 
