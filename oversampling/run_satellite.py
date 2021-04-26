@@ -23,8 +23,8 @@ print("---Satellite train_ds, test_ds ready after: ", end='')
 get_execute_time(start_time, end_train_test)
 solver_obj = Solver(satellite_train_ds, satellite_test_ds, epochs=EPOCHS, features_dim=SATELLITE_DIM)
 dataset_name = 'satellite'
-encoder_path = f'/home/nivgold/models/epochs_{EPOCHS}_{dataset_name}_encoder_weights.npy'
-decoder_path = f'/home/nivgold/models/epochs_{EPOCHS}_{dataset_name}_decoder_weights.npy'
+encoder_path = f'/home/nivgold/models/oversampling_models/epochs_{EPOCHS}_{dataset_name}_encoder_weights.npy'
+decoder_path = f'/home/nivgold/models/oversampling_models/epochs_{EPOCHS}_{dataset_name}_decoder_weights.npy'
 
 # # TRAINING
 # start_time = time.time()
@@ -34,7 +34,7 @@ decoder_path = f'/home/nivgold/models/epochs_{EPOCHS}_{dataset_name}_decoder_wei
 # print("---training finished after: ", end='')
 # get_execute_time(start_time, end_training)
 # # saving the trained weights
-# solver_obj.save_weights(path='/home/nivgold/models', dataset_name=dataset_name)
+# solver_obj.save_weights(path='/home/nivgold/models/oversampling_models', dataset_name=dataset_name)
 
 solver_obj.load_weights(encoder_path, decoder_path)
 

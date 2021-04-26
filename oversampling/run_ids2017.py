@@ -23,8 +23,8 @@ end_train_test = time.time()
 print("---IDS2017 train_ds, test_ds ready after: ", end='')
 get_execute_time(start_time, end_train_test)
 solver_obj = Solver(ids17_train_ds, ids17_test_ds, epochs=EPOCHS, features_dim=IDS17_DIM)
-encoder_path = '/home/nivgold/models/epochs_100_IDS17_encoder_weights.npy'
-decoder_path = '/home/nivgold/models/epochs_100_IDS17_decoder_weights.npy'
+encoder_path = '/home/nivgold/models/oversampling_models/epochs_100_IDS17_encoder_weights.npy'
+decoder_path = '/home/nivgold/models/oversampling_models/epochs_100_IDS17_decoder_weights.npy'
 
 # # TRAINING
 # start_time = time.time()
@@ -34,7 +34,7 @@ decoder_path = '/home/nivgold/models/epochs_100_IDS17_decoder_weights.npy'
 # print("---training finished after: ", end='')
 # get_execute_time(start_time, end_training)
 # # saving the trained weights
-# solver_obj.save_weights(path='/home/nivgold/models', dataset_name='IDS17')
+# solver_obj.save_weights(path='/home/nivgold/models/oversampling_models', dataset_name='IDS17')
 
 solver_obj.load_weights(encoder_path, decoder_path)
 

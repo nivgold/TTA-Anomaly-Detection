@@ -23,11 +23,8 @@ end_train_test = time.time()
 print("--NSLKDD train_ds, test_ds ready after: ", end='')
 get_execute_time(start_time, end_train_test)
 solver_obj = Solver(nsl_train_ds, nsl_test_ds, epochs=EPOCHS, features_dim=NSLKDD_DIM)
-encoder_path = '/home/nivgold/models/epochs_300_NSLKDD_encoder_weights.npy'
-decoder_path = '/home/nivgold/models/epochs_300_NSLKDD_decoder_weights.npy'
-
-# print("NSL train size: ", tf.data.experimental.cardinality(nsl_train_ds).numpy()*32)
-# print("NSL train_full_ds size: ", tf.data.experimental.cardinality(nsl_train_full_ds).numpy()*32)
+encoder_path = '/home/nivgold/models/oversampling_models/epochs_300_NSLKDD_encoder_weights.npy'
+decoder_path = '/home/nivgold/models/oversampling_models/epochs_300_NSLKDD_decoder_weights.npy'
 
 # # TRAINING
 # start_time = time.time()
@@ -37,7 +34,7 @@ decoder_path = '/home/nivgold/models/epochs_300_NSLKDD_decoder_weights.npy'
 # print("---training finished after: ", end='')
 # get_execute_time(start_time, end_training)
 # # saving the trained weights
-# solver_obj.save_weights(path='/home/nivgold/models', dataset_name='NSLKDD')
+# solver_obj.save_weights(path='/home/nivgold/models/oversampling_models', dataset_name='NSLKDD')
 
 solver_obj.load_weights(encoder_path, decoder_path)
 
