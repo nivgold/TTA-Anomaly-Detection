@@ -4,5 +4,5 @@ venv/*
 .vscode/*
 ids2017/ids2017_out/*
 ids2018/ids2018_out/*
-
+__pycache__/
 ids2017/*test*.py
