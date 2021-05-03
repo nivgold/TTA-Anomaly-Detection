@@ -1,6 +1,7 @@
 *.txt
 venv/*
 .idea/*
+.vscode/*
 ids2017/ids2017_out/*
 ids2018/ids2018_out/*
 
