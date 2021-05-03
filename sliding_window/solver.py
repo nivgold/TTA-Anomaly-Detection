@@ -4,14 +4,15 @@ from autoencoder_model import *
 
 
 class Solver:
-    def __init__(self, train_ds, test_ds, epochs=32):
+    def __init__(self, train_ds, test_ds, epochs=32, features_dim=76):
         self.train_ds = train_ds
         self.test_ds = test_ds
         self.num_epochs = epochs
+        self.features_dim = features_dim
 
         # using the SimpleAE model
-        self.encoder = Encoder()
-        self.decoder = Decoder()
+        self.encoder = Encoder(input_shape=features_dim)
+        self.decoder = Decoder(original_dim=features_dim)
 
         # optimizer
         self.optimizer = tf.keras.optimizers.Adam()
@@ -25,6 +26,30 @@ class Solver:
         # show network architecrute
         # enable GPU
         # setup tensorboard
+    
+    def save_weights(self, path, dataset_name):
+        encoder_path = path + f"/epochs_{self.num_epochs}_{dataset_name}_encoder_weights"
+        decoder_path = path + f"/epochs_{self.num_epochs}_{dataset_name}_decoder_weights"
+
+        np.save(encoder_path, self.encoder.get_weights())
+        np.save(decoder_path, self.decoder.get_weights())
+
+    def load_weights(self, encoder_path, decoder_path):
+        self.encoder = Encoder(input_shape=self.features_dim)
+        self.decoder = Decoder(original_dim=self.features_dim)
+
+        encoder_trained_weights = np.load(encoder_path, allow_pickle=True)
+        decoder_trained_weights = np.load(decoder_path, allow_pickle=True)
+
+        # calculating just one feed-forward in order to set the layers weights' shapes
+        for batch_X_train, batch_y_train in self.train_ds:
+            latent_var = self.encoder(batch_X_train)
+            self.decoder(latent_var)
+            break
+
+        self.encoder.set_weights(encoder_trained_weights)
+        self.decoder.set_weights(decoder_trained_weights)
+
 
     def train(self):
 
