@@ -1,5 +1,5 @@
-import ids2017_dataset as md17
-import ids2018_dataset as md18
+# import ids2017_dataset as md17
+# import ids2018_dataset as md18
 import nslkdd_dataset as nsl
 
 import numpy as np
@@ -41,21 +41,14 @@ DATA_PATH_NSLKDD = "/home/nivgold/datasets/NSL-KDD"
 
 # ----------------------------------------------------------------------------------------------------------------------
 
-# # Creating NSL-KDD Pkls
+# Creating NSL-KDD Pkls
 # nsl.NSLKDDDataset(DATA_PATH_NSLKDD, from_disk=False)
 
-# nslds = nsl.NSLKDDDataset(DATA_PATH_NSLKDD, from_disk=True)
-#
-# print("X train shape: ", nslds.train_features.shape)
-# print("Y train shape: ", nslds.train_labels.shape)
-#
-# print("X test shape: ", nslds.test_features.shape)
-# print("Y test shape: ", nslds.test_labels.shape)
-#
-# print("X train full: ", nslds.train_features_full.shape)
-# print("Y train full: ", nslds.train_labels_full.shape)
-#
-# print("X full: ", nslds.features_full.shape)
-# print("Y full: ", nslds.labels_full.shape)
+nslkdd = nsl.NSLKDDDataset(DATA_PATH_NSLKDD, from_disk=True)
+print("X TRAIN SHAPE: ", nslkdd.train_features.shape)
+print("Y TRAIN SHAPE: ", nslkdd.train_labels.shape)
+print("X TEST SHAPE: ", nslkdd.test_features.shape)
+print("Y TEST SHAPE: ", nslkdd.test_labels.shape)
+
 
 # ----------------------------------------------------------------------------------------------------------------------
