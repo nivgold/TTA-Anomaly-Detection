@@ -62,16 +62,19 @@ DATA_PATH_MAMMO = '/home/nivgold/datasets/Mammography'
 # nsl.NSLKDDDataset(DATA_PATH_NSLKDD, from_disk=False)
 
 # nslds = nsl.NSLKDDDataset(DATA_PATH_NSLKDD, from_disk=True)
-#
+ 
+# print("X_pairs shape: ", nslds.X_pairs.shape)
+# print("y_pairs shape: ", nslds.y_pairs.shape)
+
 # print("X train shape: ", nslds.train_features.shape)
 # print("Y train shape: ", nslds.train_labels.shape)
-#
+
 # print("X test shape: ", nslds.test_features.shape)
 # print("Y test shape: ", nslds.test_labels.shape)
-#
+
 # print("X train full: ", nslds.train_features_full.shape)
 # print("Y train full: ", nslds.train_labels_full.shape)
-#
+
 # print("X full: ", nslds.features_full.shape)
 # print("Y full: ", nslds.labels_full.shape)
 

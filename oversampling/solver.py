@@ -9,10 +9,11 @@ from cuml.neighbors import NearestNeighbors as cuNearestNeighbors
 from cuml.cluster import KMeans
 
 from autoencdoer_model import *
+from siamese_network_model import SiameseNetwork
 
 
 class Solver:
-    def __init__(self, train_ds, test_ds, epochs=32, features_dim=76):
+    def __init__(self, train_ds, test_ds, epochs=32, features_dim=76, knn_data=None, siamese_data=None):
         self.train_ds = train_ds
         self.test_ds = test_ds
         self.num_epochs = epochs
@@ -33,6 +34,44 @@ class Solver:
 
         # show network architecrute
         # setup tensorboard
+
+        if knn_data is not None and siamese_data is not None:
+           self.train_siamese_model(siamese_data)
+           self.train_knn_model(knn_data) 
+
+    
+    def train_knn_model(self, knn_data):
+        self.knn_data = knn_data
+        X_rapids = cudf.DataFrame(knn_data)
+
+        # defining the distance metric to be using the siamese network
+        def siamese_distance(sample1, sample2):
+            sample1 = tf.expand_dims(sample1, axis=0)
+            sample2 = tf.expand_dims(sample2, axis=0)
+            output, distance_vector = self.siamese_network((sample1, sample2))
+            return tf.math.reduce_sum(distance_vector, axis=-1)
+
+        # self.knn_model = cuNearestNeighbors(metric=siamese_distance)
+        self.knn_model = NearestNeighbors(metric=siamese_distance)
+        print("Start fitting KNN")
+        #self.knn_model.fit(X_rapids)
+        self.knn_model.fit(knn_data)
+        print("KNN model is fitted")
+
+    def train_siamese_model(self, siamese_data):
+        X_pairs, y_pairs = siamese_data
+        # using the siamese model
+        self.siamese_network = SiameseNetwork()
+        # compile the siamese network
+        self.siamese_network.compile(optimizer='adam', loss='binary_crossentropy')
+
+        # train the siamese network
+        self.siamese_network.fit(
+            [X_pairs[0], X_pairs[1]],
+            y_pairs,
+            batch_size=64,
+            epochs=10
+        )
 
     def save_weights(self, path, dataset_name):
         encoder_path = path + f"/epochs_{self.num_epochs}_{dataset_name}_encoder_weights"
@@ -135,53 +174,20 @@ class Solver:
             recall, f_score, auc))
 
         return accuracy, precision, recall, f_score, auc
+        
 
-
-    def get_oversampling_method(self, method_name):
-        methods_dict = {
-            'smote': [SMOTE],
-            'borderline_smote': [BorderlineSMOTE],
-            'both': [SMOTE, BorderlineSMOTE]
-        }
-        return methods_dict[method_name]
-
-
-    def test_tta(self, method_name, num_neighbors, num_augmentations, knn_data):
+    def test_tta(self, num_neighbors, num_augmentations):
 
         # loss function - with reduction equals to `NONE` in order to get the loss of every test example
         self.loss_func = tf.keras.losses.MeanSquaredError(reduction=tf.keras.losses.Reduction.NONE)
 
         # iterating through the train to calculate the loss of every train instance
         train_loss = []
-        # X_train_list = []
-        # y_train_list = []
         for step, (x_batch_train, y_batch_train) in enumerate(self.train_ds):
             loss = self.test_step(x_batch_train)
             train_loss.append(loss.numpy())
 
-            # X_train_list.append(x_batch_train)
-            # y_train_list.append(y_batch_train)
-
         print("Done iterating through all training set")
-
-        # adjusting X to be: ndarray of shape (num_dataset_samples, num_dataset_features)
-        # X_train = np.concatenate(X_train_list, axis=0)
-        # y_train = np.concatenate(y_train_list, axis=0)
-
-        # # decide the oversampling method
-        # oversampling_method = self.get_oversampling_method(method_name)[0]
-
-        # if SMOTE is the augmentation method -> training KNN model with training samples (RAPIDS KNN IMPLEMENTATION)
-        X_rapids = cudf.DataFrame(knn_data)
-
-        knn_model = cuNearestNeighbors(n_neighbors=num_neighbors)
-        print("Start fitting KNN")
-        knn_model.fit(X_rapids)
-        print("KNN model is fitted")
-
-        # prepare fake tta features and labels
-        # fake_tta_features = np.zeros((num_neighbors + num_augmentations, self.features_dim))
-        # fake_tta_labels = np.ones((fake_tta_features.shape[0]))
 
         # iterating through the test to calculate the loss of every test instance
         test_loss = []
@@ -194,7 +200,7 @@ class Solver:
             test_labels.append(y_batch_test.numpy())
 
             # neighbors_indices: ndarray of shape (batch_size, num_of_augmentations)
-            neighbors_indices = knn_model.kneighbors(np.array(x_batch_test), return_distance=False)
+            neighbors_indices = self.knn_model.kneighbors(X=np.array(x_batch_test), n_neighbors=num_neighbors, return_distance=False)
             neighbors_indices = np.squeeze(neighbors_indices)
 
             # tta_features_batch: ndarray of shape (batch_size, num_dataset_features)
@@ -216,8 +222,6 @@ class Solver:
             for primary_loss, tta_loss in list(zip(reconstruction_loss, tta_reconstruction)):
                 combined_tta_loss = np.concatenate([[primary_loss], tta_loss])
                 test_loss.append(np.mean(combined_tta_loss))
-
-            # print(f"{step}/{len(self.test_ds)}")
 
         train_loss = np.concatenate(train_loss, axis=0)
 
@@ -245,23 +249,6 @@ class Solver:
             recall, f_score, auc))
 
         return accuracy, precision, recall, f_score, auc
-
-    def get_oversampling_tta_sample(self, neighbors_features, neighbors_labels, num_augmentations, oversampling_method, fake_tta_features, fake_tta_labels):
-        tta_features_full = np.concatenate([neighbors_features, fake_tta_features])
-        tta_labels_full = np.concatenate([neighbors_labels, fake_tta_labels])
-
-        len_class_0 = len(neighbors_labels)
-        len_class_1 = len(fake_tta_labels)
-
-        oversampling_class_dict = {
-            0: len_class_0 + num_augmentations,
-            1: len_class_1
-        }
-
-        osmp_obj = oversampling_method(sampling_strategy=oversampling_class_dict, k_neighbors=len_class_0-1)
-        X_res, y_res = osmp_obj.fit_resample(tta_features_full, tta_labels_full)
-
-        return X_res[-num_augmentations:]
 
     @tf.function
     def test_step(self, inputs):
