@@ -11,6 +11,8 @@ from cuml.cluster import KMeans
 from autoencdoer_model import *
 from siamese_network_model import SiameseNetwork
 
+from tqdm import tqdm
+
 
 class Solver:
     def __init__(self, train_ds, test_ds, epochs=32, features_dim=76, knn_data=None, siamese_data=None):
@@ -192,7 +194,7 @@ class Solver:
         # iterating through the test to calculate the loss of every test instance
         test_loss = []
         test_labels = []
-        for step, (x_batch_test, y_batch_test) in enumerate(self.test_ds):
+        for step, (x_batch_test, y_batch_test) in tqdm(enumerate(self.test_ds)):
             # x_batch_test: ndarray of shape (batch_size, num_dataset_features)
             # y_batch_test: ndarray of shape (batch_size,)
 
