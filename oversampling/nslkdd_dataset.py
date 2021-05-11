@@ -4,6 +4,7 @@ import numpy as np
 import tensorflow as tf
 from datetime import datetime
 from sklearn.preprocessing import MinMaxScaler
+from tqdm import tqdm
 
 AUTOTUNE = tf.data.experimental.AUTOTUNE
 
@@ -67,6 +68,9 @@ class NSLKDDDataset:
             self.features_full = pd.read_pickle(disk_path+"/features_full_nslkdd.pkl")
             self.labels_full = pd.read_pickle(disk_path+"/labels_full_nslkdd.pkl")
 
+            self.X_pairs = np.load(self.disk_path + "/X_pairs_nslkdd.npy")
+            self.y_pairs = np.load(self.disk_path + "/y_pairs_nslkdd.npy")
+
         else:
             train_file_name = "KDDTrain+.txt"
             print(f'Openning {train_file_name}')
@@ -107,6 +111,9 @@ class NSLKDDDataset:
             # Full Data
             self.features_full = pd.concat([self.train_features_full, self.test_features], axis=0)
             self.labels_full = pd.concat([self.train_labels_full, self.test_labels], axis=0)
+
+            # generating siamese pairs
+            self.X_pairs, self.y_pairs = generate_pairs(self.features_full, self.labels_full)
 
             # saving the attributes to disk
             self.save_attributes_to_disk()
@@ -163,6 +170,10 @@ class NSLKDDDataset:
         pd.to_pickle(self.features_full, self.disk_path + "/features_full_nslkdd.pkl")
         pd.to_pickle(self.labels_full, self.disk_path + "/labels_full_nslkdd.pkl")
 
+        # save siamese pairs
+        np.save(self.disk_path + "/X_pairs_nslkdd.npy", self.X_pairs)
+        np.save(self.disk_path + "/y_pairs_nslkdd.npy", self.y_pairs)
+
 
 def df_to_dataset(data, labels, shuffle=False, batch_size=32):
     # df -> dataset -> cache -> shuffle -> batch -> prefetch
@@ -205,4 +216,58 @@ def get_dataset(data_path, batch_size, from_disk=True):
                .batch(batch_size)
                .map(test_pack_features_vector))
 
-    return train_ds, test_ds, nsl_dataset.train_features_full.values, nsl_dataset.features_full.values
+    return train_ds, test_ds, nsl_dataset.train_features_full.values, nsl_dataset.features_full.values, (nsl_dataset.X_pairs, nsl_dataset.y_pairs)
+
+
+def generate_pairs(features_full, labels_full):
+    print(f"features full shape: {features_full.shape}, labels_full shape: {labels_full.shape}")
+    data = pd.concat([features_full, labels_full], axis=1)
+    label_col = 41
+
+    normal_data = data[data[label_col] == 0].drop(columns=[label_col], axis=1)
+    anomaly_data = data[data[label_col] == 1].drop(columns=[label_col], axis=1)
+
+    left_list = []
+    right_list = []
+    label_list = []
+
+    print("pairing from normal data")
+    for idx, row in tqdm(normal_data.iterrows()):
+        same_sample = normal_data.sample(n=1).iloc[0]
+        left_list.append(row)
+        right_list.append(same_sample)
+        label_list.append(1)
+        different_sample = anomaly_data.sample(n=1).iloc[0]
+        left_list.append(row)
+        right_list.append(different_sample)
+        label_list.append(0)
+    
+    print("pairing from anomaly data")
+    for idx, row in tqdm(anomaly_data.iterrows()):
+        same_sample = anomaly_data.sample(n=1).iloc[0]
+        left_list.append(row)
+        right_list.append(same_sample)
+        label_list.append(1)
+        different_sample = normal_data.sample(n=1).iloc[0]
+        left_list.append(row)
+        right_list.append(different_sample)
+        label_list.append(0)
+
+    left_list_data = pd.DataFrame(left_list).reset_index(drop=True)
+    left_list_data.columns = [f'left_{col}' for col in left_list_data.columns]
+
+    right_list_data = pd.DataFrame(right_list).reset_index(drop=True)
+    right_list_data.columns = [f'right_{col}' for col in right_list_data.columns]
+
+    label_df = pd.DataFrame({'label': label_list})
+
+    full_df = pd.concat([left_list_data, right_list_data, label_df], axis=1)
+    full_df = full_df.sample(frac=1).reset_index(drop=True)
+
+    left_pairs = full_df.loc[:, left_list_data.columns]
+    right_pairs = full_df.loc[:, right_list_data.columns]
+
+    X = np.array([left_pairs.values, right_pairs.values])
+    y = full_df['label'].values
+
+    return X, y

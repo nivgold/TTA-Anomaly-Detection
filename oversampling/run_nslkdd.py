@@ -1,3 +1,6 @@
+import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+
 import nslkdd_dataset as nslmd
 
 from solver import Solver
@@ -18,11 +21,11 @@ NSLKDD_DIM = 38
 
 # testing ids2017 dataset
 start_time = time.time()
-nsl_train_ds, nsl_test_ds, nsl_train_full_ds, nsl_features_full_ds = nslmd.get_dataset(HOME_PATH, 32, from_disk=True)
+nsl_train_ds, nsl_test_ds, nsl_train_full_ds, nsl_features_full_ds, nsl_pairs = nslmd.get_dataset(HOME_PATH, 32, from_disk=True)
 end_train_test = time.time()
 print("--NSLKDD train_ds, test_ds ready after: ", end='')
 get_execute_time(start_time, end_train_test)
-solver_obj = Solver(nsl_train_ds, nsl_test_ds, epochs=EPOCHS, features_dim=NSLKDD_DIM)
+solver_obj = Solver(nsl_train_ds, nsl_test_ds, epochs=EPOCHS, features_dim=NSLKDD_DIM, knn_data=nsl_features_full_ds, siamese_data=nsl_pairs)
 encoder_path = '/home/nivgold/models/oversampling_models/epochs_300_NSLKDD_encoder_weights.npy'
 decoder_path = '/home/nivgold/models/oversampling_models/epochs_300_NSLKDD_decoder_weights.npy'
 
@@ -53,7 +56,7 @@ num_augmentations = 2
 
 start_time = time.time()
 print(f"Start testing with TTA... \t {oversampling_method}, {num_neighbors} neighbors, {num_augmentations} TTA augmentations")
-accuracy, precision, recall, f_score, auc = solver_obj.test_tta(oversampling_method, num_neighbors=num_neighbors, num_augmentations=num_augmentations, knn_data=nsl_features_full_ds)
+accuracy, precision, recall, f_score, auc = solver_obj.test_tta(num_neighbors=num_neighbors, num_augmentations=num_augmentations)
 end_tta_testing = time.time()
 print("---TTA testing finished after: ", end='')
 get_execute_time(start_time, end_tta_testing)
