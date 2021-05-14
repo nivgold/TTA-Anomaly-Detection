@@ -1,6 +1,4 @@
 import numpy as np
-from imblearn.over_sampling import SMOTE
-from imblearn.over_sampling import BorderlineSMOTE
 from sklearn.neighbors import NearestNeighbors
 import tensorflow as tf
 
