@@ -54,7 +54,7 @@ class Solver:
             return tf.math.reduce_sum(distance_vector, axis=-1)
 
         # self.knn_model = cuNearestNeighbors(metric=siamese_distance)
-        self.knn_model = NearestNeighbors(metric=siamese_distance)
+        self.knn_model = NearestNeighbors(metric=siamese_distance, n_jobs=-1)
         print("Start fitting KNN")
         #self.knn_model.fit(X_rapids)
         self.knn_model.fit(knn_data)
