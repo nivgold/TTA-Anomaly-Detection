@@ -1,11 +1,14 @@
+import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+
 import mammo_dataset as mammd
 
 from solver import Solver
 import tensorflow as tf
 import time
 
-gpus = tf.config.experimental.list_physical_devices('GPU')
-tf.config.experimental.set_memory_growth(gpus[0], True)
+# gpus = tf.config.experimental.list_physical_devices('GPU')
+# tf.config.experimental.set_memory_growth(gpus[0], True)
 
 def get_execute_time(start_time, end_time):
     hours, rem = divmod(end_time - start_time, 3600)
@@ -17,11 +20,11 @@ EPOCHS = 500
 MAMMO_DIM = 6
 
 start_time = time.time()
-mammo_train_ds, mammo_test_ds, mammo_features_full = mammd.get_dataset(HOME_PATH, 32, from_disk=True)
+mammo_train_ds, mammo_test_ds, mammo_features_full, mammo_pairs = mammd.get_dataset(HOME_PATH, 32, from_disk=True)
 end_train_test = time.time()
 print("---Mammography train_ds, test_ds ready after: ", end='')
 get_execute_time(start_time, end_train_test)
-solver_obj = Solver(mammo_train_ds, mammo_test_ds, epochs=EPOCHS, features_dim=MAMMO_DIM)
+solver_obj = Solver(mammo_train_ds, mammo_test_ds, epochs=EPOCHS, features_dim=MAMMO_DIM, knn_data=mammo_features_full, siamese_data=mammo_pairs)
 dataset_name = 'mammo'
 encoder_path = f'/home/nivgold/models/oversampling_models/epochs_{EPOCHS}_{dataset_name}_encoder_weights.npy'
 decoder_path = f'/home/nivgold/models/oversampling_models/epochs_{EPOCHS}_{dataset_name}_decoder_weights.npy'
@@ -53,7 +56,7 @@ num_augmentations = 2
 
 start_time = time.time()
 print(f"Start testing with TTA... \t {oversampling_method}, {num_neighbors} neighbors, {num_augmentations} TTA augmentations")
-accuracy, precision, recall, f_score, auc = solver_obj.test_tta(oversampling_method, num_neighbors=num_neighbors, num_augmentations=num_augmentations, knn_data=mammo_features_full)
+accuracy, precision, recall, f_score, auc = solver_obj.test_tta(num_neighbors=num_neighbors, num_augmentations=num_augmentations)
 end_tta_testing = time.time()
 print("---TTA testing finished after: ", end='')
 get_execute_time(start_time, end_tta_testing)

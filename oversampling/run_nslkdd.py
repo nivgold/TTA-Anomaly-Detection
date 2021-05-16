@@ -7,8 +7,8 @@ from solver import Solver
 import tensorflow as tf
 import time
 
-gpus = tf.config.experimental.list_physical_devices('GPU')
-tf.config.experimental.set_memory_growth(gpus[0], True)
+# gpus = tf.config.experimental.list_physical_devices('GPU')
+# tf.config.experimental.set_memory_growth(gpus[0], True)
 
 def get_execute_time(start_time, end_time):
     hours, rem = divmod(end_time - start_time, 3600)

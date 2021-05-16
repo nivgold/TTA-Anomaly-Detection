@@ -2,8 +2,8 @@ import numpy as np
 from sklearn.neighbors import NearestNeighbors
 import tensorflow as tf
 
-import cudf, cuml
-from cuml.neighbors import NearestNeighbors as cuNearestNeighbors
+# import cudf, cuml
+# from cuml.neighbors import NearestNeighbors as cuNearestNeighbors
 from cuml.cluster import KMeans
 
 from autoencdoer_model import *
@@ -42,7 +42,7 @@ class Solver:
     
     def train_knn_model(self, knn_data):
         self.knn_data = knn_data
-        X_rapids = cudf.DataFrame(knn_data)
+        # X_rapids = cudf.DataFrame(knn_data)
 
         # defining the distance metric to be using the siamese network
         def siamese_distance(sample1, sample2):
@@ -192,7 +192,8 @@ class Solver:
         # iterating through the test to calculate the loss of every test instance
         test_loss = []
         test_labels = []
-        for step, (x_batch_test, y_batch_test) in tqdm(enumerate(self.test_ds)):
+        tqdm_total_bar = self.test_ds.cardinality().numpy()
+        for step, (x_batch_test, y_batch_test) in tqdm(enumerate(self.test_ds), total=tqdm_total_bar):
             # x_batch_test: ndarray of shape (batch_size, num_dataset_features)
             # y_batch_test: ndarray of shape (batch_size,)
 
@@ -204,7 +205,7 @@ class Solver:
             neighbors_indices = np.squeeze(neighbors_indices)
 
             # tta_features_batch: ndarray of shape (batch_size, num_dataset_features)
-            neighbors_batch_features = knn_data[neighbors_indices]
+            neighbors_batch_features = self.knn_data[neighbors_indices]
 
             tta_reconstruction = []
             for neighbors_features in neighbors_batch_features:

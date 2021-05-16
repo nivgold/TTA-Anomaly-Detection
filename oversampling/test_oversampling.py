@@ -84,17 +84,30 @@ DATA_PATH_MAMMO = '/home/nivgold/datasets/Mammography'
 # cc.CreditCardDataset(DATA_PATH_CREDITCARD, from_disk=False)
 
 # creditcard = cc.CreditCardDataset(DATA_PATH_CREDITCARD, from_disk=True)
-# print(creditcard.train_features)
 
+# print("X_pairs shape: ", creditcard.X_pairs.shape)
+# print("y_pairs shape: ", creditcard.y_pairs.shape)
+
+# print("X train shape: ", creditcard.train_features.shape)
+# print("Y train shape: ", creditcard.train_labels.shape)
+
+# print("X full shape: ", creditcard.features_full.shape)
+# print("Y full shape: ", creditcard.labels_full.shape)
 # ----------------------------------------------------------------------------------------------------------------------
 
 # # Creating Satellite Pkls
 # satellite = sd.SatelliteDataset(DATA_PATH_SATELLITE, from_disk=False)
 
 # satellite = sd.SatelliteDataset(DATA_PATH_SATELLITE, from_disk=True)
-# print(satellite.labels_full.value_counts())
-# print(satellite.train_labels.value_counts())
-# print(satellite.test_labels.value_counts())
+
+# print("X pairs shape: ", satellite.X_pairs.shape)
+# print("y_pairs shape: ", satellite.y_pairs.shape)
+
+# print("X train shape: ", satellite.train_features.shape)
+# print("Y train shape: ", satellite.train_labels.shape)
+
+# print("X full shape: ", satellite.features_full.shape)
+# print("Y full shape: ", satellite.labels_full.shape)
 
 # ----------------------------------------------------------------------------------------------------------------------
 
@@ -102,9 +115,18 @@ DATA_PATH_MAMMO = '/home/nivgold/datasets/Mammography'
 # lympho = lymds.LymphoDataset(DATA_PATH_LYMPHO, from_disk=False)
 
 # lympho = lymds.LymphoDataset(DATA_PATH_LYMPHO, from_disk=True)
-# print(lympho.labels_full.value_counts())
-# print(lympho.train_labels.value_counts())
-# print(lympho.test_labels.value_counts())
+
+# print("X_pairs shape: ", lympho.X_pairs.shape)
+# print("y_pairs shape: ", lympho.y_pairs.shape)
+
+# print("X train shape: ", lympho.train_features.shape)
+# print("Y train shape: ", lympho.train_labels.shape)
+
+# print("X test shape: ", lympho.test_features.shape)
+# print("Y test shape: ", lympho.test_labels.shape)
+
+# print("X full shape: ", lympho.features_full.shape)
+# print("Y full shape", lympho.labels_full.shape)
 
 # ----------------------------------------------------------------------------------------------------------------------
 
@@ -112,20 +134,37 @@ DATA_PATH_MAMMO = '/home/nivgold/datasets/Mammography'
 # cardio = carmd.CardioDataset(DATA_PATH_CARDIO, from_disk=False)
 
 # cardio = carmd.CardioDataset(DATA_PATH_CARDIO, from_disk=True)
-# print(cardio.train_features)
-# print(cardio.labels_full.value_counts())
-# print(cardio.train_labels.value_counts())
-# print(cardio.test_labels.value_counts())
+
+# print("X_pairs shape: ", cardio.X_pairs.shape)
+# print("y_pairs shape: ", cardio.y_pairs.shape)
+
+# print("X train shape: ", cardio.train_features.shape)
+# print("Y train shape: ", cardio.train_labels.shape)
+
+# print("X test shape: ", cardio.test_features.shape)
+# print("Y test shape: ", cardio.test_labels.shape)
+
+# print("X full shape: ", cardio.features_full.shape)
+# print("Y full shape", cardio.labels_full.shape)
 
 # ----------------------------------------------------------------------------------------------------------------------
 
 # # Creating Thyroid Pkls
 # thyroid = thymd.ThyroidDataset(DATA_PATH_THYROID, from_disk=False)
 
-# thyroid = thymd.ThyroidDataset(DATA_PATH_THYROID, from_disk=True)
-# print(thyroid.labels_full.value_counts())
-# print(thyroid.train_labels.value_counts())
-# print(thyroid.test_labels.value_counts())
+thyroid = thymd.ThyroidDataset(DATA_PATH_THYROID, from_disk=True)
+
+print("X_pairs shape: ", thyroid.X_pairs.shape)
+print("y_pairs shape: ", thyroid.y_pairs.shape)
+
+print("X train shape: ", thyroid.train_features.shape)
+print("Y train shape: ", thyroid.train_labels.shape)
+
+print("X test shape: ", thyroid.test_features.shape)
+print("Y test shape: ", thyroid.test_labels.shape)
+
+print("X full shape: ", thyroid.features_full.shape)
+print("Y full shape", thyroid.labels_full.shape)
 
 # ----------------------------------------------------------------------------------------------------------------------
 
@@ -133,8 +172,17 @@ DATA_PATH_MAMMO = '/home/nivgold/datasets/Mammography'
 # mammo = mammd.MammoDataset(DATA_PATH_MAMMO, from_disk=False)
 
 # mammo = mammd.MammoDataset(DATA_PATH_MAMMO, from_disk=True)
-# print(mammo.labels_full.value_counts())
-# print(mammo.train_labels.value_counts())
-# print(mammo.test_labels.value_counts())
+
+# print("X_pairs shape: ", mammo.X_pairs.shape)
+# print("y_pairs shape: ", mammo.y_pairs.shape)
+
+# print("X train shape: ", mammo.train_features.shape)
+# print("Y train shape: ", mammo.train_labels.shape)
+
+# print("X test shape: ", mammo.test_features.shape)
+# print("Y test shape: ", mammo.test_labels.shape)
+
+# print("X full shape: ", mammo.features_full.shape)
+# print("Y full shape", mammo.labels_full.shape)
 
 # ----------------------------------------------------------------------------------------------------------------------
