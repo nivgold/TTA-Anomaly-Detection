@@ -1,3 +1,6 @@
+import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+
 import ids2017_dataset as md17
 import ids2018_dataset as md18
 import nslkdd_dataset as nsl
@@ -14,7 +17,9 @@ from imblearn.over_sampling import SMOTE
 from collections import Counter
 import cudf, cuml
 from cuml.neighbors import NearestNeighbors as cuNearestNeighbors
-from cuml.cluster import KMeans
+from cuml.cluster import KMeans as cuKMeans
+from siamese_network_model import SiameseNetwork
+from sklearn.neighbors import NearestNeighbors
 
 DATA_PATH_2017 = "/home/nivgold/datasets/IDS2017"
 DATA_PATH_2018 = "/home/nivgold/datasets/IDS2018/Processed Traffic Data for ML Algorithms/Thuesday-20-02-2018_TrafficForML_CICFlowMeter.csv"
@@ -152,19 +157,19 @@ DATA_PATH_MAMMO = '/home/nivgold/datasets/Mammography'
 # # Creating Thyroid Pkls
 # thyroid = thymd.ThyroidDataset(DATA_PATH_THYROID, from_disk=False)
 
-thyroid = thymd.ThyroidDataset(DATA_PATH_THYROID, from_disk=True)
+# thyroid = thymd.ThyroidDataset(DATA_PATH_THYROID, from_disk=True)
 
-print("X_pairs shape: ", thyroid.X_pairs.shape)
-print("y_pairs shape: ", thyroid.y_pairs.shape)
+# print("X_pairs shape: ", thyroid.X_pairs.shape)
+# print("y_pairs shape: ", thyroid.y_pairs.shape)
 
-print("X train shape: ", thyroid.train_features.shape)
-print("Y train shape: ", thyroid.train_labels.shape)
+# print("X train shape: ", thyroid.train_features.shape)
+# print("Y train shape: ", thyroid.train_labels.shape)
 
-print("X test shape: ", thyroid.test_features.shape)
-print("Y test shape: ", thyroid.test_labels.shape)
+# print("X test shape: ", thyroid.test_features.shape)
+# print("Y test shape: ", thyroid.test_labels.shape)
 
-print("X full shape: ", thyroid.features_full.shape)
-print("Y full shape", thyroid.labels_full.shape)
+# print("X full shape: ", thyroid.features_full.shape)
+# print("Y full shape", thyroid.labels_full.shape)
 
 # ----------------------------------------------------------------------------------------------------------------------
 
