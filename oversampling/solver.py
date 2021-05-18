@@ -1,10 +1,11 @@
 import numpy as np
-from sklearn.neighbors import NearestNeighbors
 import tensorflow as tf
 
 # import cudf, cuml
-# from cuml.neighbors import NearestNeighbors as cuNearestNeighbors
-from cuml.cluster import KMeans
+from cuml.neighbors import NearestNeighbors as cuNearestNeighbors
+from cuml.cluster import KMeans as cuKMeans
+from sklearn.neighbors import NearestNeighbors
+from sklearn.cluster import KMeans
 
 from autoencdoer_model import *
 from siamese_network_model import SiameseNetwork
@@ -51,11 +52,14 @@ class Solver:
             output, distance_vector = self.siamese_network((sample1, sample2))
             return tf.math.reduce_sum(distance_vector, axis=-1)
 
-        # self.knn_model = cuNearestNeighbors(metric=siamese_distance)
-        self.knn_model = NearestNeighbors(metric=siamese_distance, n_jobs=-1)
+        self.knn_model = cuNearestNeighbors(metric='l1')
+        # self.knn_model = NearestNeighbors(metric=siamese_distance, n_jobs=-1)
         print("Start fitting KNN")
-        #self.knn_model.fit(X_rapids)
-        self.knn_model.fit(knn_data)
+        # calculate knn data latent features with the siamse network
+        latent_features = self.siam_internal_model(knn_data).numpy()
+        self.knn_model.fit(latent_features)
+        # self.knn_model.fit(X_rapids)
+        # self.knn_model.fit(knn_data)
         print("KNN model is fitted")
 
     def train_siamese_model(self, siamese_data):
@@ -72,6 +76,10 @@ class Solver:
             batch_size=64,
             epochs=10
         )
+
+        # save the latent features of every sample in a dict
+        self.siam_internal_model = self.siamese_network.layers[0]
+
 
     def save_weights(self, path, dataset_name):
         encoder_path = path + f"/epochs_{self.num_epochs}_{dataset_name}_encoder_weights"
@@ -200,9 +208,11 @@ class Solver:
             reconstruction_loss = self.test_step(x_batch_test).numpy()
             test_labels.append(y_batch_test.numpy())
 
-            # neighbors_indices: ndarray of shape (batch_size, num_of_augmentations)
-            neighbors_indices = self.knn_model.kneighbors(X=np.array(x_batch_test), n_neighbors=num_neighbors, return_distance=False)
-            neighbors_indices = np.squeeze(neighbors_indices)
+            # neighbors_indices: ndarray of shape (batch_size, num_neighbors)
+            # neighbors_indices = self.knn_model.kneighbors(X=np.array(x_batch_test), n_neighbors=num_neighbors, return_distance=False)
+            # neighbors_indices = np.squeeze(neighbors_indices)
+            test_batch_latent_features = self.siam_internal_model(x_batch_test).numpy()
+            neighbors_indices = self.knn_model.kneighbors(X=test_batch_latent_features, n_neighbors=num_neighbors, return_distance=False)
 
             # tta_features_batch: ndarray of shape (batch_size, num_dataset_features)
             neighbors_batch_features = self.knn_data[neighbors_indices]
@@ -210,7 +220,7 @@ class Solver:
             tta_reconstruction = []
             for neighbors_features in neighbors_batch_features:
                 # tta_features = self.get_oversampling_tta_sample(neighbors_features, neighbors_labels, num_augmentations, oversampling_method, fake_tta_features, fake_tta_labels)
-                k_means = KMeans(n_clusters=num_augmentations)
+                k_means = cuKMeans(n_clusters=num_augmentations)
                 neighbors_features = neighbors_features.astype(np.float32)
                 k_means.fit(neighbors_features)
                 tta_features = k_means.cluster_centers_
