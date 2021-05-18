@@ -220,7 +220,7 @@ class Solver:
             tta_reconstruction = []
             for neighbors_features in neighbors_batch_features:
                 # tta_features = self.get_oversampling_tta_sample(neighbors_features, neighbors_labels, num_augmentations, oversampling_method, fake_tta_features, fake_tta_labels)
-                k_means = cuKMeans(n_clusters=num_augmentations)
+                k_means = cuKMeans(n_clusters=num_augmentations, random_state=1234)
                 neighbors_features = neighbors_features.astype(np.float32)
                 k_means.fit(neighbors_features)
                 tta_features = k_means.cluster_centers_

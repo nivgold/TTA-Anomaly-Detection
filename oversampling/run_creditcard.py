@@ -5,6 +5,9 @@ import creditcard_dataset as cc
 
 from solver import Solver
 import tensorflow as tf
+tf.random.set_seed(1234)
+import numpy as np
+np.random.seed(1234)
 import time
 
 # gpus = tf.config.experimental.list_physical_devices('GPU')
