@@ -17,14 +17,14 @@ def get_execute_time(start_time, end_time):
 
 HOME_PATH = '/home/nivgold'
 EPOCHS = 500
-CARDIO_DIM = 6
+THYROID_DIM = 6
 
 start_time = time.time()
 thyroid_train_ds, thyroid_test_ds, thyroid_features_full, thyroid_pairs = thymd.get_dataset(HOME_PATH, 32, from_disk=True)
 end_train_test = time.time()
 print("---Thyroid train_ds, test_ds ready after: ", end='')
 get_execute_time(start_time, end_train_test)
-solver_obj = Solver(thyroid_train_ds, thyroid_test_ds, epochs=EPOCHS, features_dim=CARDIO_DIM, knn_data=thyroid_features_full, siamese_data=thyroid_pairs)
+solver_obj = Solver(thyroid_train_ds, thyroid_test_ds, epochs=EPOCHS, features_dim=THYROID_DIM, knn_data=thyroid_features_full, siamese_data=thyroid_pairs)
 dataset_name = 'thyroid'
 encoder_path = f'/home/nivgold/models/oversampling_models/epochs_{EPOCHS}_{dataset_name}_encoder_weights.npy'
 decoder_path = f'/home/nivgold/models/oversampling_models/epochs_{EPOCHS}_{dataset_name}_decoder_weights.npy'
