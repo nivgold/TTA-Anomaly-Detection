@@ -36,12 +36,19 @@ DATA_PATH_MAMMO = '/home/nivgold/datasets/Mammography'
 # # Creating 2017 Pkls
 # md17.IDS2017Dataset(DATA_PATH_2017, from_disk=False)
 
-# ids17 = md17.IDS2017Dataset(DATA_PATH_2017, from_disk=True)
-# print(ids17.train_features.shape)
-# print(np.unique(ids17.train_labels))
-# print(ids17.train_features_full.shape)
-# print(np.unique(ids17.train_labels_full))
-# print(ids17.labels_full.shape)
+ids17 = md17.IDS2017Dataset(DATA_PATH_2017, from_disk=True)
+
+print("X_pairs shape: ", ids17.X_pairs.shape)
+print("y_pairs shape: ", ids17.y_pairs.shape)
+
+print("X train shape: ", ids17.train_features.shape)
+print("Y train shape: ", ids17.train_labels.shape)
+
+print("X test shape: ", ids17.test_features.shape)
+print("Y test shape: ", ids17.test_labels.shape)
+
+print("X full: ", ids17.features_full.shape)
+print("Y full: ", ids17.labels_full.shape)
 
 # ----------------------------------------------------------------------------------------------------------------------
 
@@ -49,17 +56,18 @@ DATA_PATH_MAMMO = '/home/nivgold/datasets/Mammography'
 # md18.IDS2018Dataset(DATA_PATH_2018, from_disk=False)
 
 # ids18 = md18.IDS2018Dataset(DATA_PATH_2018, from_disk=True)
-# X_train = ids18.train_features
-# full_features = ids18.features_full
-# y_train = ids18.train_labels
-#
-# print("X_train shape: ", X_train.shape)
-# print("full features shape: ", full_features.shape)
-# print("y_train shape: ", y_train.shape)
-#
-# print("classes:", y_train.unique())
 
-# ids18_train_ds, ids18_test_ds, ids18_features_full = md18.get_dataset(DATA_PATH_2018, 32, from_disk=True)
+# print("X_pairs shape: ", ids18.X_pairs.shape)
+# print("y_pairs shape: ", ids18.y_pairs.shape)
+
+# print("X train shape: ", ids18.train_features.shape)
+# print("Y train shape: ", ids18.train_labels.shape)
+
+# print("X test shape: ", ids18.test_features.shape)
+# print("Y test shape: ", ids18.test_labels.shape)
+
+# print("X full: ", ids18.features_full.shape)
+# print("Y full: ", ids18.labels_full.shape)
 
 # ----------------------------------------------------------------------------------------------------------------------
 
