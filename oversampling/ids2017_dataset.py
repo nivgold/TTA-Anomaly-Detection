@@ -4,6 +4,7 @@ import numpy as np
 import tensorflow as tf
 from datetime import datetime
 from sklearn.preprocessing import MinMaxScaler
+from tqdm import tqdm
 
 AUTOTUNE = tf.data.experimental.AUTOTUNE
 
@@ -75,6 +76,9 @@ class IDS2017Dataset:
             self.features_full = pd.read_pickle(disk_path + "/features_full_ids2017.pkl")
             self.labels_full = pd.read_pickle(disk_path + "/labels_full_ids2017.pkl")
 
+            self.X_pairs = np.load(self.disk_path + "/X_pairs_ids2017.npy")
+            self.y_pairs = np.load(self.disk_path + "/y_pairs_ids2017.npy")
+
         else:
             df_list = []
             for file_name in os.listdir(data_dir_path):
@@ -114,6 +118,9 @@ class IDS2017Dataset:
 
             self.test_labels = test_df[' Label']
             self.test_features = test_df.drop(columns=[' Label'], axis=1)
+
+            # generating siamese pairs
+            self.X_pairs, self.y_pairs = generate_pairs(self.features_full, self.labels_full)
 
             # saving the attributes to disk
             self.save_attributes_to_disk()
@@ -193,6 +200,9 @@ class IDS2017Dataset:
         # save full data
         pd.to_pickle(self.features_full, self.disk_path + "/features_full_ids2017.pkl")
         pd.to_pickle(self.labels_full, self.disk_path + "/labels_full_ids2017.pkl")
+        # save siamese pairs
+        np.save(self.disk_path + "/X_pairs_ids2017.npy", self.X_pairs)
+        np.save(self.disk_path + "/y_pairs_ids2017.npy", self.y_pairs)
 
 
 def df_to_dataset(data, labels, shuffle=False, batch_size=32):
@@ -236,4 +246,58 @@ def get_dataset(data_path, batch_size, from_disk=True):
                .batch(batch_size)
                .map(test_pack_features_vector))
 
-    return train_ds, test_ds, ids17.train_features_full.values, ids17.features_full.values
+    return train_ds, test_ds, ids17.train_features_full.values, ids17.features_full.values, (ids17.X_pairs, ids17.y_pairs)
+
+def generate_pairs(features_full, labels_full):
+    print(f"features full shape: {features_full.shape}, labels_full shape: {labels_full.shape}")
+    data = pd.concat([features_full, labels_full], axis=1)
+    data = data.sample(n=150000)
+    label_col = ' Label'
+
+    normal_data = data[data[label_col] == 0].drop(columns=[label_col], axis=1)
+    anomaly_data = data[data[label_col] == 1].drop(columns=[label_col], axis=1)
+
+    left_list = []
+    right_list = []
+    label_list = []
+
+    print("pairing from normal data")
+    for idx, row in tqdm(normal_data.iterrows(), total=len(normal_data)):
+        same_sample = normal_data.sample(n=1).iloc[0]
+        left_list.append(row)
+        right_list.append(same_sample)
+        label_list.append(1)
+        different_sample = anomaly_data.sample(n=1).iloc[0]
+        left_list.append(row)
+        right_list.append(different_sample)
+        label_list.append(0)
+    
+    print("pairing from anomaly data")
+    for idx, row in tqdm(anomaly_data.iterrows(), total=len(anomaly_data)):
+        same_sample = anomaly_data.sample(n=1).iloc[0]
+        left_list.append(row)
+        right_list.append(same_sample)
+        label_list.append(1)
+        different_sample = normal_data.sample(n=1).iloc[0]
+        left_list.append(row)
+        right_list.append(different_sample)
+        label_list.append(0)
+
+    left_list_data = pd.DataFrame(left_list).reset_index(drop=True)
+    left_list_data.columns = [f'left_{col}' for col in left_list_data.columns]
+
+    right_list_data = pd.DataFrame(right_list).reset_index(drop=True)
+    right_list_data.columns = [f'right_{col}' for col in right_list_data.columns]
+
+    label_df = pd.DataFrame({'label': label_list})
+
+    full_df = pd.concat([left_list_data, right_list_data, label_df], axis=1)
+    full_df = full_df.sample(frac=1).reset_index(drop=True)
+
+    left_pairs = full_df.loc[:, left_list_data.columns]
+    right_pairs = full_df.loc[:, right_list_data.columns]
+
+    X = np.array([left_pairs.values, right_pairs.values])
+    y = full_df['label'].values
+
+    return X, y
