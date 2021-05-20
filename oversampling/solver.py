@@ -1,7 +1,7 @@
 import numpy as np
 import tensorflow as tf
 
-# import cudf, cuml
+import cudf, cuml
 from cuml.neighbors import NearestNeighbors as cuNearestNeighbors
 from cuml.cluster import KMeans as cuKMeans
 from sklearn.neighbors import NearestNeighbors
@@ -14,11 +14,13 @@ from tqdm import tqdm
 
 
 class Solver:
-    def __init__(self, train_ds, test_ds, epochs=32, features_dim=76, knn_data=None, siamese_data=None):
+    def __init__(self, train_ds, test_ds, epochs=32, features_dim=76, knn_data=None, siamese_data=None, with_cuml=True):
         self.train_ds = train_ds
         self.test_ds = test_ds
         self.num_epochs = epochs
         self.features_dim = features_dim
+
+        self.with_cuml = with_cuml
 
         # using the SimpleAE model
         self.encoder = Encoder(input_shape=features_dim)
@@ -43,7 +45,6 @@ class Solver:
     
     def train_knn_model(self, knn_data):
         self.knn_data = knn_data
-        # X_rapids = cudf.DataFrame(knn_data)
 
         # defining the distance metric to be using the siamese network
         def siamese_distance(sample1, sample2):
@@ -52,15 +53,23 @@ class Solver:
             output, distance_vector = self.siamese_network((sample1, sample2))
             return tf.math.reduce_sum(distance_vector, axis=-1)
 
-        self.knn_model = cuNearestNeighbors(metric='l1')
-        # self.knn_model = NearestNeighbors(metric=siamese_distance, n_jobs=-1)
-        print("Start fitting KNN")
-        # calculate knn data latent features with the siamse network
-        latent_features = self.siam_internal_model(knn_data).numpy()
-        self.knn_model.fit(latent_features)
-        # self.knn_model.fit(X_rapids)
-        # self.knn_model.fit(knn_data)
-        print("KNN model is fitted")
+        if self.with_cuml:
+            print("--- Using cuML ---")
+            # define and train siamese-distance based KNN
+            self.knn_model_siamese = cuNearestNeighbors(metric='cosine')
+            latent_features = self.siam_internal_model(self.knn_data).numpy()
+            self.knn_model_siamese.fit(latent_features)
+            # define and train regular KNN
+            self.knn_model_regular = cuNearestNeighbors()
+            self.knn_model_regular.fit(self.knn_data)
+        else:
+            print("--- Not using cuML")
+            # define and train siamese-distance based KNN
+            self.knn_model_siamese = NearestNeighbors(metric=siamese_distance, n_jobs=-1)
+            self.knn_model_siamese.fit(self.knn_data)
+            # define and train regular KNN
+            self.knn_model_regular = NearestNeighbors()
+            self.knn_model_regular.fit(self.knn_data)
 
     def train_siamese_model(self, siamese_data):
         X_pairs, y_pairs = siamese_data
@@ -74,11 +83,12 @@ class Solver:
             [X_pairs[0], X_pairs[1]],
             y_pairs,
             batch_size=64,
-            epochs=10
+            epochs=10,
+            # validation_split=0.2,
         )
 
         # save the latent features of every sample in a dict
-        self.siam_internal_model = self.siamese_network.layers[0]
+        self.siam_internal_model = self.siamese_network.internal_model
 
 
     def save_weights(self, path, dataset_name):
@@ -166,7 +176,7 @@ class Solver:
         # setting the threshold to be a value of a 80% of the loss of all the examples
         # give a reference from the GMM papper
         thresh = np.percentile(combined_loss, self.percentile)
-        print("Threshold :", thresh)
+        print("Baseline threshold :", thresh)
         # thresh = np.mean(combined_loss) + np.std(combined_loss)
 
         y_pred = tf.where(test_loss > thresh, 1, 0).numpy().astype(int)
@@ -177,12 +187,8 @@ class Solver:
         precision, recall, f_score, support = prf(y_true, y_pred, average='binary')
         auc = roc_auc_score(y_true, y_pred)
 
-        print("Accuracy : {:0.4f}, Precision : {:0.4f}, Recall : {:0.4f}, F-score : {:0.4f}, AUC : {:0.4f}".format(
-            accuracy, precision,
-            recall, f_score, auc))
-
-        return accuracy, precision, recall, f_score, auc
-        
+        # save test metrics in self
+        self.baseline_metrics = (accuracy, precision, recall, f_score, auc)
 
     def test_tta(self, num_neighbors, num_augmentations):
 
@@ -198,7 +204,9 @@ class Solver:
         print("Done iterating through all training set")
 
         # iterating through the test to calculate the loss of every test instance
-        test_loss = []
+        regular_knn_test_loss = []
+        siamese_knn_test_loss = []
+        # test_loss = []
         test_labels = []
         tqdm_total_bar = self.test_ds.cardinality().numpy()
         for step, (x_batch_test, y_batch_test) in tqdm(enumerate(self.test_ds), total=tqdm_total_bar):
@@ -208,58 +216,89 @@ class Solver:
             reconstruction_loss = self.test_step(x_batch_test).numpy()
             test_labels.append(y_batch_test.numpy())
 
-            # neighbors_indices: ndarray of shape (batch_size, num_neighbors)
-            # neighbors_indices = self.knn_model.kneighbors(X=np.array(x_batch_test), n_neighbors=num_neighbors, return_distance=False)
-            # neighbors_indices = np.squeeze(neighbors_indices)
+            # calculate regular knn indices
+            regular_knn_batch_neighbors_indices = self.knn_model_regular.kneighbors(X=x_batch_test.numpy(), n_neighbors=num_neighbors, return_distance=False)
+            # calculate siamese-knn indices
             test_batch_latent_features = self.siam_internal_model(x_batch_test).numpy()
-            neighbors_indices = self.knn_model.kneighbors(X=test_batch_latent_features, n_neighbors=num_neighbors, return_distance=False)
+            siamese_knn_batch_neighbors_indices = self.knn_model_siamese.kneighbors(X=test_batch_latent_features, n_neighbors=num_neighbors, return_distance=False)
 
-            # tta_features_batch: ndarray of shape (batch_size, num_dataset_features)
-            neighbors_batch_features = self.knn_data[neighbors_indices]
+            # neighbors_indices: ndarray of shape (batch_size, num_neighbors)
 
-            tta_reconstruction = []
-            for neighbors_features in neighbors_batch_features:
-                # tta_features = self.get_oversampling_tta_sample(neighbors_features, neighbors_labels, num_augmentations, oversampling_method, fake_tta_features, fake_tta_labels)
-                k_means = cuKMeans(n_clusters=num_augmentations, random_state=1234)
-                neighbors_features = neighbors_features.astype(np.float32)
-                k_means.fit(neighbors_features)
-                tta_features = k_means.cluster_centers_
+            # batch_neighbors_features: ndarray of shape (batch_size, num_neighbors, num_dataset_features)
+            regular_knn_batch_neighbors_features = self.knn_data[regular_knn_batch_neighbors_indices]
+            siamese_knn_batch_neighbors_features = self.knn_data[siamese_knn_batch_neighbors_indices]
 
-                # making the test phase for the tta sample
-                tta_reconstruction_loss = self.test_step(tta_features).numpy()
-                tta_reconstruction.append(tta_reconstruction_loss)
 
-            # calculating the final loss - mean over primary sample and tta samples
-            for primary_loss, tta_loss in list(zip(reconstruction_loss, tta_reconstruction)):
+            # tta_reconstruction = []
+            # batch_tta_samples = []
+            # for neighbors_features in regular_knn_batch_neighbors_features:
+            #     k_means = KMeans(n_clusters=num_augmentations, random_state=1234)
+            #     neighbors_features = neighbors_features.astype(np.float32)
+            #     k_means.fit(neighbors_features)
+            #     tta_features = k_means.cluster_centers_
+            #     tta_samples = k_means.cluster_centers_
+            #     batch_tta_samples.append(tta_samples)
+
+            #     # making the test phase for the tta sample
+            #     tta_reconstruction_loss = self.test_step(tta_features).numpy()
+            #     tta_reconstruction.append(tta_reconstruction_loss)
+
+            # batch_tta_samples: ndarray of shape: (batch_size, num_augmentations, num_dataset_features)
+            regular_knn_batch_tta_samples = self.generate_tta_samples(regular_knn_batch_neighbors_features, num_augmentations=num_augmentations)
+            siamese_knn_batch_tta_samples = self.generate_tta_samples(siamese_knn_batch_neighbors_features, num_augmentations=num_augmentations)
+            
+            # batch_tta_reconstruction: ndarray of shape: (batch_size, num_augmentations)
+            regular_knn_batch_tta_reconstruction = self.test_step(regular_knn_batch_tta_samples).numpy()
+            siamese_knn_batch_tta_reconstruction = self.test_step(siamese_knn_batch_tta_samples).numpy()
+
+            # # calculating the final loss - mean over primary sample and tta samples
+            # for primary_loss, tta_loss in list(zip(reconstruction_loss, tta_reconstruction)):
+            #     combined_tta_loss = np.concatenate([[primary_loss], tta_loss])
+            #     test_loss.append(np.mean(combined_tta_loss))
+            
+            for primary_loss, tta_loss in list(zip(reconstruction_loss, regular_knn_batch_tta_reconstruction)):
                 combined_tta_loss = np.concatenate([[primary_loss], tta_loss])
-                test_loss.append(np.mean(combined_tta_loss))
+                regular_knn_test_loss.append(np.mean(combined_tta_loss))
+
+
+            for primary_loss, tta_loss in list(zip(reconstruction_loss, siamese_knn_batch_tta_reconstruction)):
+                combined_tta_loss = np.concatenate([[primary_loss], tta_loss])
+                siamese_knn_test_loss.append(np.mean(combined_tta_loss))
 
         train_loss = np.concatenate(train_loss, axis=0)
 
         # test_loss = np.concatenate(test_loss, axis=0)
         test_labels = np.concatenate(test_labels, axis=0)
 
-        combined_loss = np.concatenate([train_loss, test_loss], axis=0)
+        combined_regular_knn_loss = np.concatenate([train_loss, regular_knn_test_loss], axis=0)
+        combined_siamese_knn_loss = np.concatenate([train_loss, siamese_knn_test_loss], axis=0)
 
         # setting the threshold to be a value of a 80% of the loss of all the examples
         # give a reference from the GMM papper
-        thresh = np.percentile(combined_loss, self.percentile)
-        print("Threshold :", thresh)
+        regular_knn_thresh = np.percentile(combined_regular_knn_loss, self.percentile)
+        siamese_knn_thresh = np.percentile(combined_siamese_knn_loss, self.percentile)
+        print("Regular TTA threshold :", regular_knn_thresh)
+        print("Siamese TTA threshold :", siamese_knn_thresh)
         # thresh = np.mean(combined_loss) + np.std(combined_loss)
 
-        y_pred = tf.where(test_loss > thresh, 1, 0).numpy().astype(int)
+        regular_knn_y_pred = tf.where(regular_knn_test_loss > regular_knn_thresh, 1, 0).numpy().astype(int)
+        siamese_knn_y_pred = tf.where(siamese_knn_test_loss > siamese_knn_thresh, 1, 0).numpy().astype(int)
         y_true = np.asarray(test_labels).astype(int)
 
         from sklearn.metrics import precision_recall_fscore_support as prf, accuracy_score, roc_auc_score
-        accuracy = accuracy_score(y_true, y_pred)
-        precision, recall, f_score, support = prf(y_true, y_pred, average='binary')
-        auc = roc_auc_score(y_true, y_pred)
 
-        print("Accuracy : {:0.4f}, Precision : {:0.4f}, Recall : {:0.4f}, F-score : {:0.4f}, AUC : {:0.4f}".format(
-            accuracy, precision,
-            recall, f_score, auc))
+        regular_knn_accuracy = accuracy_score(y_true, regular_knn_y_pred)
+        siamese_knn_accuracy = accuracy_score(y_true, siamese_knn_y_pred)
 
-        return accuracy, precision, recall, f_score, auc
+        regular_knn_precision, regular_knn_recall, regular_knn_f_score, regular_knn_support = prf(y_true, regular_knn_y_pred, average='binary')
+        siamese_knn_precision, siamese_knn_recall, siamese_knn_f_score, siamese_knn_support = prf(y_true, siamese_knn_y_pred, average='binary')
+
+        regular_knn_auc = roc_auc_score(y_true, regular_knn_y_pred)
+        siamese_knn_auc = roc_auc_score(y_true, siamese_knn_y_pred)
+
+        # save both test metrics in self
+        self.regular_tta_metrics = (regular_knn_accuracy, regular_knn_precision, regular_knn_recall, regular_knn_f_score, regular_knn_auc)
+        self.siamese_tta_metrics = (siamese_knn_accuracy, siamese_knn_precision, siamese_knn_recall, siamese_knn_f_score, siamese_knn_auc)
 
     @tf.function
     def test_step(self, inputs):
@@ -268,3 +307,32 @@ class Solver:
         reconstruction_loss = self.loss_func(inputs, reconstructed)
 
         return reconstruction_loss
+
+    def generate_tta_samples(self, batch_neighbors_features, num_augmentations):
+        batch_tta_samples = []
+        for neighbors_features in batch_neighbors_features:
+            kmeans_model = KMeans(n_clusters=num_augmentations, random_state=1234)
+            neighbors_features = neighbors_features.astype(np.float32)
+            kmeans_model.fit(X=neighbors_features)
+            tta_samples = kmeans_model.cluster_centers_
+            # appending to the batch tta samples
+            batch_tta_samples.append(tta_samples)
+        
+        return np.array(batch_tta_samples)
+
+    def print_test_results(self):
+        if self.baseline_metrics is None or self.regular_tta_metrics is None or self.siamese_tta_metrics is None:
+            raise ValueError("run test and tta_test functions and then call print_test_results function")
+        
+        print("*"*100)
+        print("---- Baseline Test ----")
+        print("Accuracy : {:0.4f}, Precision : {:0.4f}, Recall : {:0.4f}, F-score : {:0.4f}, AUC : {:0.4f}".format(*self.baseline_metrics))
+
+        print("*"*100)
+        print("---- Regular TTA Test ----")
+        print("Accuracy : {:0.4f}, Precision : {:0.4f}, Recall : {:0.4f}, F-score : {:0.4f}, AUC : {:0.4f}".format(*self.regular_tta_metrics))
+
+        print("*"*100)
+        print("---- Siamese TTA Test ----")
+        print("Accuracy : {:0.4f}, Precision : {:0.4f}, Recall : {:0.4f}, F-score : {:0.4f}, AUC : {:0.4f}".format(*self.siamese_tta_metrics))
+        print("*"*100)
