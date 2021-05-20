@@ -25,7 +25,7 @@ SATELLITE_DIM = 36
 start_time = time.time()
 satellite_train_ds, satellite_test_ds, satellite_features_full, satellite_pairs = sd.get_dataset(HOME_PATH, 32, from_disk=True)
 end_train_test = time.time()
-print("---Satellite train_ds, test_ds ready after: ", end='')
+print("--- Satellite dataset ready after: ", end='')
 get_execute_time(start_time, end_train_test)
 solver_obj = Solver(satellite_train_ds, satellite_test_ds, epochs=EPOCHS, features_dim=SATELLITE_DIM, knn_data=satellite_features_full, siamese_data=satellite_pairs)
 dataset_name = 'satellite'
@@ -46,20 +46,21 @@ solver_obj.load_weights(encoder_path, decoder_path)
 
 # TEST WITHOUT TTA
 start_time = time.time()
-print("Start testing...")
-accuracy, precision, recall, f_score, auc = solver_obj.test()
+print("--- Start baseline testing...")
+solver_obj.test()
 end_testing = time.time()
-print("---testing finished after: ", end='')
+print("--- Baseline testing finished after: ", end='')
 get_execute_time(start_time, end_testing)
 
 # TEST WITH TTA
-oversampling_method = "smote"
 num_neighbors = 5
 num_augmentations = 2
 
 start_time = time.time()
-print(f"Start testing with TTA... \t {oversampling_method}, {num_neighbors} neighbors, {num_augmentations} TTA augmentations")
-accuracy, precision, recall, f_score, auc = solver_obj.test_tta(num_neighbors=num_neighbors, num_augmentations=num_augmentations)
+print(f"--- Start TTA testing with: \t {num_neighbors} neighbors, {num_augmentations} TTA augmentations")
+solver_obj.test_tta(num_neighbors=num_neighbors, num_augmentations=num_augmentations)
 end_tta_testing = time.time()
-print("---TTA testing finished after: ", end='')
+print("--- TTA testing finished after: ", end='')
 get_execute_time(start_time, end_tta_testing)
+
+solver_obj.print_test_results()
