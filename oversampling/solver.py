@@ -33,7 +33,7 @@ class Solver:
         self.loss_func = tf.keras.losses.MeanSquaredError()
 
         # set percentile thresh
-        self.percentile = 70
+        self.percentile = 80
 
         # show network architecrute
         # setup tensorboard
@@ -221,27 +221,11 @@ class Solver:
             # calculate siamese-knn indices
             test_batch_latent_features = self.siam_internal_model(x_batch_test).numpy()
             siamese_knn_batch_neighbors_indices = self.knn_model_siamese.kneighbors(X=test_batch_latent_features, n_neighbors=num_neighbors, return_distance=False)
-
             # neighbors_indices: ndarray of shape (batch_size, num_neighbors)
 
             # batch_neighbors_features: ndarray of shape (batch_size, num_neighbors, num_dataset_features)
             regular_knn_batch_neighbors_features = self.knn_data[regular_knn_batch_neighbors_indices]
             siamese_knn_batch_neighbors_features = self.knn_data[siamese_knn_batch_neighbors_indices]
-
-
-            # tta_reconstruction = []
-            # batch_tta_samples = []
-            # for neighbors_features in regular_knn_batch_neighbors_features:
-            #     k_means = KMeans(n_clusters=num_augmentations, random_state=1234)
-            #     neighbors_features = neighbors_features.astype(np.float32)
-            #     k_means.fit(neighbors_features)
-            #     tta_features = k_means.cluster_centers_
-            #     tta_samples = k_means.cluster_centers_
-            #     batch_tta_samples.append(tta_samples)
-
-            #     # making the test phase for the tta sample
-            #     tta_reconstruction_loss = self.test_step(tta_features).numpy()
-            #     tta_reconstruction.append(tta_reconstruction_loss)
 
             # batch_tta_samples: ndarray of shape: (batch_size, num_augmentations, num_dataset_features)
             regular_knn_batch_tta_samples = self.generate_tta_samples(regular_knn_batch_neighbors_features, num_augmentations=num_augmentations)
@@ -250,11 +234,6 @@ class Solver:
             # batch_tta_reconstruction: ndarray of shape: (batch_size, num_augmentations)
             regular_knn_batch_tta_reconstruction = self.test_step(regular_knn_batch_tta_samples).numpy()
             siamese_knn_batch_tta_reconstruction = self.test_step(siamese_knn_batch_tta_samples).numpy()
-
-            # # calculating the final loss - mean over primary sample and tta samples
-            # for primary_loss, tta_loss in list(zip(reconstruction_loss, tta_reconstruction)):
-            #     combined_tta_loss = np.concatenate([[primary_loss], tta_loss])
-            #     test_loss.append(np.mean(combined_tta_loss))
             
             for primary_loss, tta_loss in list(zip(reconstruction_loss, regular_knn_batch_tta_reconstruction)):
                 combined_tta_loss = np.concatenate([[primary_loss], tta_loss])
@@ -267,7 +246,6 @@ class Solver:
 
         train_loss = np.concatenate(train_loss, axis=0)
 
-        # test_loss = np.concatenate(test_loss, axis=0)
         test_labels = np.concatenate(test_labels, axis=0)
 
         combined_regular_knn_loss = np.concatenate([train_loss, regular_knn_test_loss], axis=0)
@@ -311,7 +289,7 @@ class Solver:
     def generate_tta_samples(self, batch_neighbors_features, num_augmentations):
         batch_tta_samples = []
         for neighbors_features in batch_neighbors_features:
-            kmeans_model = KMeans(n_clusters=num_augmentations, random_state=1234)
+            kmeans_model = cuKMeans(n_clusters=num_augmentations, random_state=1234)
             neighbors_features = neighbors_features.astype(np.float32)
             kmeans_model.fit(X=neighbors_features)
             tta_samples = kmeans_model.cluster_centers_
