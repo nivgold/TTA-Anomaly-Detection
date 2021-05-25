@@ -7,6 +7,10 @@ from cuml.cluster import KMeans as cuKMeans
 from sklearn.neighbors import NearestNeighbors
 from sklearn.cluster import KMeans
 
+from sklearn.metrics import roc_curve
+import scikitplot as skplt
+import matplotlib.pyplot as plt
+
 from autoencdoer_model import *
 from siamese_network_model import SiameseNetwork
 
@@ -14,7 +18,9 @@ from tqdm import tqdm
 
 
 class Solver:
-    def __init__(self, train_ds, test_ds, epochs=32, features_dim=76, knn_data=None, siamese_data=None, with_cuml=True):
+    def __init__(self, train_ds, test_ds, dataset_name, epochs=32, features_dim=76, knn_data=None, siamese_data=None, with_cuml=True):
+        self.dataset_name = dataset_name
+
         self.train_ds = train_ds
         self.test_ds = test_ds
         self.num_epochs = epochs
@@ -185,10 +191,14 @@ class Solver:
         from sklearn.metrics import precision_recall_fscore_support as prf, accuracy_score, roc_auc_score
         accuracy = accuracy_score(y_true, y_pred)
         precision, recall, f_score, support = prf(y_true, y_pred, average='binary')
-        auc = roc_auc_score(y_true, y_pred)
+        # auc = roc_auc_score(y_true, y_pred)
+        auc = roc_auc_score(y_true, test_loss)
 
         # save test metrics in self
         self.baseline_metrics = (accuracy, precision, recall, f_score, auc)
+        self.baseline_y_pred_loss = test_loss
+
+        self.y_true = y_true
 
     def test_tta(self, num_neighbors, num_augmentations):
 
@@ -271,12 +281,17 @@ class Solver:
         regular_knn_precision, regular_knn_recall, regular_knn_f_score, regular_knn_support = prf(y_true, regular_knn_y_pred, average='binary')
         siamese_knn_precision, siamese_knn_recall, siamese_knn_f_score, siamese_knn_support = prf(y_true, siamese_knn_y_pred, average='binary')
 
-        regular_knn_auc = roc_auc_score(y_true, regular_knn_y_pred)
-        siamese_knn_auc = roc_auc_score(y_true, siamese_knn_y_pred)
+        # regular_knn_auc = roc_auc_score(y_true, regular_knn_y_pred)
+        regular_knn_auc = roc_auc_score(y_true, regular_knn_test_loss)
+        # siamese_knn_auc = roc_auc_score(y_true, siamese_knn_y_pred)
+        siamese_knn_auc = roc_auc_score(y_true, siamese_knn_test_loss)
 
         # save both test metrics in self
         self.regular_tta_metrics = (regular_knn_accuracy, regular_knn_precision, regular_knn_recall, regular_knn_f_score, regular_knn_auc)
         self.siamese_tta_metrics = (siamese_knn_accuracy, siamese_knn_precision, siamese_knn_recall, siamese_knn_f_score, siamese_knn_auc)
+
+        self.regular_tta_y_pred_loss = regular_knn_test_loss
+        self.siamese_tta_y_pred_loss = siamese_knn_test_loss
 
     @tf.function
     def test_step(self, inputs):
@@ -314,3 +329,24 @@ class Solver:
         print("---- Siamese TTA Test ----")
         print("Accuracy : {:0.4f}, Precision : {:0.4f}, Recall : {:0.4f}, F-score : {:0.4f}, AUC : {:0.4f}".format(*self.siamese_tta_metrics))
         print("*"*100)
+
+        # plot roc curve
+        # skplt.metrics.plot_roc_curve(self.y_true, self.baseline_y_pred)
+        baseline_accuracy, baseline_precision, baseline_recall, baseline_f_score, baseline_auc = self.baseline_metrics 
+        baseline_fpr, baseline_tpr, threshold = roc_curve(self.y_true, self.baseline_y_pred_loss)
+        plt.plot(baseline_fpr, baseline_tpr, label='AUC = {:.3f}'.format(baseline_auc))
+        regular_knn_accuracy, regular_knn_precision, regular_knn_recall, regular_knn_f_score, regular_knn_auc = self.regular_tta_metrics
+        regular_tta_fpr, regular_tta_tpr, threshold = roc_curve(self.y_true, self.regular_tta_y_pred_loss)
+        plt.plot(regular_tta_fpr, regular_tta_tpr, label='AUC = {:.3f}'.format(regular_knn_auc))
+        siamese_knn_accuracy, siamese_knn_precision, siamese_knn_recall, siamese_knn_f_score, siamese_knn_auc = self.siamese_tta_metrics 
+        siamese_tta_fpr, siamese_tta_tpr, threshold = roc_curve(self.y_true, self.siamese_tta_y_pred_loss)
+        plt.plot(siamese_tta_fpr, siamese_tta_tpr, label='AUC = {:.3f}'.format(siamese_knn_auc))
+        plt.plot([0, 1], [0, 1], linestyle='dashed', color='gray')
+        plt.xlim([0, 1])
+        plt.ylim([0, 1])
+        plt.legend(loc='lower right')
+        plt.ylabel("True Positive Rate")
+        plt.xlabel("False Positive Rate")
+        plt.title("ROC Curves")
+        # plt.show()
+        plt.savefig(f"/home/nivgold/plots/{self.dataset_name}_ROC_curve.png")
