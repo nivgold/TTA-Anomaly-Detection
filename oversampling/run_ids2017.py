@@ -27,8 +27,8 @@ ids17_train_ds, ids17_test_ds, ids17_train_full_ds, ids17_features_full, ids17_p
 end_train_test = time.time()
 print("--- IDS2017 dataset ready after: ", end='')
 get_execute_time(start_time, end_train_test)
-solver_obj = Solver(ids17_train_ds, ids17_test_ds, epochs=EPOCHS, features_dim=IDS17_DIM, knn_data=ids17_features_full, siamese_data=ids17_pairs)
 dataset_name = 'IDS17'
+solver_obj = Solver(ids17_train_ds, ids17_test_ds, dataset_name=dataset_name, epochs=EPOCHS, features_dim=IDS17_DIM, knn_data=ids17_features_full, siamese_data=ids17_pairs)
 encoder_path = f'/home/nivgold/models/oversampling_models/epochs_{EPOCHS}_{dataset_name}_encoder_weights.npy'
 decoder_path = f'/home/nivgold/models/oversampling_models/epochs_{EPOCHS}_{dataset_name}_decoder_weights.npy'
 
