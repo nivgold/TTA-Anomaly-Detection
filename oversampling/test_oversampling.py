@@ -10,6 +10,11 @@ import lympho_dataset as lymds
 import cardio_dataset as carmd
 import thyroid_dataset as thymd
 import mammo_dataset as mammd
+import vowels_dataset as vomd
+import yeast_dataset as yemd
+import satimage_dataset as satmd
+import shuttle_dataset as shmd
+
 import numpy as np
 import pandas as pd
 
@@ -30,25 +35,29 @@ DATA_PATH_LYMPHO = '/home/nivgold/datasets/Lymphography'
 DATA_PATH_CARDIO = '/home/nivgold/datasets/Cardiotocography'
 DATA_PATH_THYROID = '/home/nivgold/datasets/Thyroid'
 DATA_PATH_MAMMO = '/home/nivgold/datasets/Mammography'
+DATA_PATH_VOWELS = '/home/nivgold/datasets/Vowels'
+DATA_PATH_YEAST = '/home/nivgold/datasets/Yeast'
+DATA_PATH_SATIMAGE = '/home/nivgold/datasets/Satimage'
+DATA_PATH_SHUTTLE = '/home/nivgold/datasets/Shuttle'
 
 # ----------------------------------------------------------------------------------------------------------------------
 
 # # Creating 2017 Pkls
 # md17.IDS2017Dataset(DATA_PATH_2017, from_disk=False)
 
-ids17 = md17.IDS2017Dataset(DATA_PATH_2017, from_disk=True)
+# ids17 = md17.IDS2017Dataset(DATA_PATH_2017, from_disk=True)
 
-print("X_pairs shape: ", ids17.X_pairs.shape)
-print("y_pairs shape: ", ids17.y_pairs.shape)
+# print("X_pairs shape: ", ids17.X_pairs.shape)
+# print("y_pairs shape: ", ids17.y_pairs.shape)
 
-print("X train shape: ", ids17.train_features.shape)
-print("Y train shape: ", ids17.train_labels.shape)
+# print("X train shape: ", ids17.train_features.shape)
+# print("Y train shape: ", ids17.train_labels.shape)
 
-print("X test shape: ", ids17.test_features.shape)
-print("Y test shape: ", ids17.test_labels.shape)
+# print("X test shape: ", ids17.test_features.shape)
+# print("Y test shape: ", ids17.test_labels.shape)
 
-print("X full: ", ids17.features_full.shape)
-print("Y full: ", ids17.labels_full.shape)
+# print("X full: ", ids17.features_full.shape)
+# print("Y full: ", ids17.labels_full.shape)
 
 # ----------------------------------------------------------------------------------------------------------------------
 
@@ -197,5 +206,81 @@ print("Y full: ", ids17.labels_full.shape)
 
 # print("X full shape: ", mammo.features_full.shape)
 # print("Y full shape", mammo.labels_full.shape)
+
+# ----------------------------------------------------------------------------------------------------------------------
+
+# # Creating Vowels Pkls
+# vowels = vomd.VowelsDataset(DATA_PATH_VOWELS, from_disk=False)
+
+# vowels = vomd.VowelsDataset(DATA_PATH_VOWELS, from_disk=True)
+
+# print("X_pairs shape: ", vowels.X_pairs.shape)
+# print("y_pairs shape: ", vowels.y_pairs.shape)
+
+# print("X train shape: ", vowels.train_features.shape)
+# print("Y train shape: ", vowels.train_labels.shape)
+
+# print("X test shape: ", vowels.test_features.shape)
+# print("Y test shape: ", vowels.test_labels.shape)
+
+# print("X full shape: ", vowels.features_full.shape)
+# print("Y full shape", vowels.labels_full.shape)
+
+# ----------------------------------------------------------------------------------------------------------------------
+
+# # Creating Yeast Pkls
+# yeast = yemd.YeastDataset(DATA_PATH_YEAST, from_disk=False)
+
+# yeast = yemd.YeastDataset(DATA_PATH_YEAST, from_disk=True)
+
+# print("X_pairs shape: ", yeast.X_pairs.shape)
+# print("y_pairs shape: ", yeast.y_pairs.shape)
+
+# print("X train shape: ", yeast.train_features.shape)
+# print("Y train shape: ", yeast.train_labels.shape)
+
+# print("X test shape: ", yeast.test_features.shape)
+# print("Y test shape: ", yeast.test_labels.shape)
+
+# print("X full shape: ", yeast.features_full.shape)
+# print("Y full shape", yeast.labels_full.shape)
+
+# ----------------------------------------------------------------------------------------------------------------------
+
+# # Creating Satimage Pkls
+# satimage = satmd.SatimageDataset(DATA_PATH_SATIMAGE, from_disk=False)
+
+# satimage = satmd.SatimageDataset(DATA_PATH_SATIMAGE, from_disk=True)
+
+# print("X_pairs shape: ", satimage.X_pairs.shape)
+# print("y_pairs shape: ", satimage.y_pairs.shape)
+
+# print("X train shape: ", satimage.train_features.shape)
+# print("Y train shape: ", satimage.train_labels.shape)
+
+# print("X test shape: ", satimage.test_features.shape)
+# print("Y test shape: ", satimage.test_labels.shape)
+
+# print("X full shape: ", satimage.features_full.shape)
+# print("Y full shape", satimage.labels_full.shape)
+
+# ----------------------------------------------------------------------------------------------------------------------
+
+# # Creating Shuttle Pkls
+# shuttle = shmd.ShuttleDataset(DATA_PATH_SHUTTLE, from_disk=False)
+
+# shuttle = shmd.ShuttleDataset(DATA_PATH_SHUTTLE, from_disk=True)
+
+# print("X_pairs shape: ", shuttle.X_pairs.shape)
+# print("y_pairs shape: ", shuttle.y_pairs.shape)
+
+# print("X train shape: ", shuttle.train_features.shape)
+# print("Y train shape: ", shuttle.train_labels.shape)
+
+# print("X test shape: ", shuttle.test_features.shape)
+# print("Y test shape: ", shuttle.test_labels.shape)
+
+# print("X full shape: ", shuttle.features_full.shape)
+# print("Y full shape", shuttle.labels_full.shape)
 
 # ----------------------------------------------------------------------------------------------------------------------
