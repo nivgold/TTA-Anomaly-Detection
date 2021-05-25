@@ -27,8 +27,8 @@ thyroid_train_ds, thyroid_test_ds, thyroid_features_full, thyroid_pairs = thymd.
 end_train_test = time.time()
 print("--- Thyroid dataset ready after: ", end='')
 get_execute_time(start_time, end_train_test)
-solver_obj = Solver(thyroid_train_ds, thyroid_test_ds, epochs=EPOCHS, features_dim=THYROID_DIM, knn_data=thyroid_features_full, siamese_data=thyroid_pairs)
 dataset_name = 'thyroid'
+solver_obj = Solver(thyroid_train_ds, thyroid_test_ds, dataset_name=dataset_name, epochs=EPOCHS, features_dim=THYROID_DIM, knn_data=thyroid_features_full, siamese_data=thyroid_pairs)
 encoder_path = f'/home/nivgold/models/oversampling_models/epochs_{EPOCHS}_{dataset_name}_encoder_weights.npy'
 decoder_path = f'/home/nivgold/models/oversampling_models/epochs_{EPOCHS}_{dataset_name}_decoder_weights.npy'
 
@@ -53,8 +53,8 @@ print("--- Baseline testing finished after: ", end='')
 get_execute_time(start_time, end_testing)
 
 # TEST WITH TTA
-num_neighbors = 5
-num_augmentations = 2
+num_neighbors = 10
+num_augmentations = 7
 
 start_time = time.time()
 print(f"--- Start TTA testing with: \t {num_neighbors} neighbors, {num_augmentations} TTA augmentations")

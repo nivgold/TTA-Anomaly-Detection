@@ -27,8 +27,8 @@ mammo_train_ds, mammo_test_ds, mammo_features_full, mammo_pairs = mammd.get_data
 end_train_test = time.time()
 print("--- Mammography dataset ready after: ", end='')
 get_execute_time(start_time, end_train_test)
-solver_obj = Solver(mammo_train_ds, mammo_test_ds, epochs=EPOCHS, features_dim=MAMMO_DIM, knn_data=mammo_features_full, siamese_data=mammo_pairs)
 dataset_name = 'mammo'
+solver_obj = Solver(mammo_train_ds, mammo_test_ds, dataset_name=dataset_name, epochs=EPOCHS, features_dim=MAMMO_DIM, knn_data=mammo_features_full, siamese_data=mammo_pairs)
 encoder_path = f'/home/nivgold/models/oversampling_models/epochs_{EPOCHS}_{dataset_name}_encoder_weights.npy'
 decoder_path = f'/home/nivgold/models/oversampling_models/epochs_{EPOCHS}_{dataset_name}_decoder_weights.npy'
 
@@ -53,8 +53,8 @@ print("--- Baseline testing finished after: ", end='')
 get_execute_time(start_time, end_testing)
 
 # TEST WITH TTA
-num_neighbors = 5
-num_augmentations = 2
+num_neighbors = 10
+num_augmentations = 7
 
 start_time = time.time()
 print(f"--- Start TTA testing with: \t {num_neighbors} neighbors, {num_augmentations} TTA augmentations")

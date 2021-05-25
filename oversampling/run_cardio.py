@@ -27,8 +27,8 @@ cardio_train_ds, cardio_test_ds, cardio_features_full, cardio_pairs = carmd.get_
 end_train_test = time.time()
 print("--- Cardio dataset ready after: ", end='')
 get_execute_time(start_time, end_train_test)
-solver_obj = Solver(cardio_train_ds, cardio_test_ds, epochs=EPOCHS, features_dim=CARDIO_DIM, knn_data=cardio_features_full, siamese_data=cardio_pairs)
 dataset_name = 'cardio'
+solver_obj = Solver(cardio_train_ds, cardio_test_ds, dataset_name=dataset_name, epochs=EPOCHS, features_dim=CARDIO_DIM, knn_data=cardio_features_full, siamese_data=cardio_pairs)
 encoder_path = f'/home/nivgold/models/oversampling_models/epochs_{EPOCHS}_{dataset_name}_encoder_weights.npy'
 decoder_path = f'/home/nivgold/models/oversampling_models/epochs_{EPOCHS}_{dataset_name}_decoder_weights.npy'
 
@@ -53,8 +53,8 @@ print("--- Baseline testing finished after: ", end='')
 get_execute_time(start_time, end_testing)
 
 # TEST WITH TTA
-num_neighbors = 5
-num_augmentations = 2
+num_neighbors = 10
+num_augmentations = 7
 
 start_time = time.time()
 print(f"--- Start TTA testing with: \t {num_neighbors} neighbors, {num_augmentations} TTA augmentations")
