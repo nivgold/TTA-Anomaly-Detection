@@ -16,6 +16,9 @@ from siamese_network_model import SiameseNetwork
 
 from tqdm import tqdm
 
+from imblearn.over_sampling import SMOTE
+from imblearn.over_sampling import BorderlineSMOTE
+
 
 class Solver:
     def __init__(self, train_ds, test_ds, dataset_name, epochs=32, features_dim=76, knn_data=None, siamese_data=None, with_cuml=True):
@@ -214,9 +217,14 @@ class Solver:
         print("Done iterating through all training set")
 
         # iterating through the test to calculate the loss of every test instance
-        regular_knn_test_loss = []
-        siamese_knn_test_loss = []
-        # test_loss = []
+        kmeans_regular_knn_test_loss = []
+        kmeans_siamese_knn_test_loss = []
+        SMOTE_regular_knn_tta_test_loss = []
+        SMOTE_siamese_knn_tta_test_loss = []
+        BorderlineSMOTE_regular_knn_tta_test_loss = []
+        BorderlineSMOTE_siamese_knn_tta_test_loss = []
+        gaussian_tta_test_loss = []
+        
         test_labels = []
         tqdm_total_bar = self.test_ds.cardinality().numpy()
         for step, (x_batch_test, y_batch_test) in tqdm(enumerate(self.test_ds), total=tqdm_total_bar):
@@ -238,60 +246,146 @@ class Solver:
             siamese_knn_batch_neighbors_features = self.knn_data[siamese_knn_batch_neighbors_indices]
 
             # batch_tta_samples: ndarray of shape: (batch_size, num_augmentations, num_dataset_features)
-            regular_knn_batch_tta_samples = self.generate_tta_samples(regular_knn_batch_neighbors_features, num_augmentations=num_augmentations)
-            siamese_knn_batch_tta_samples = self.generate_tta_samples(siamese_knn_batch_neighbors_features, num_augmentations=num_augmentations)
+            kmeans_regular_knn_batch_tta_samples = self.generate_kmeans_tta_samples(regular_knn_batch_neighbors_features, num_augmentations=num_augmentations)
+            kmeans_siamese_knn_batch_tta_samples = self.generate_kmeans_tta_samples(siamese_knn_batch_neighbors_features, num_augmentations=num_augmentations)
+            SMOTE_regular_knn_batch_tta_samples = self.generate_oversampling_tta_samples(regular_knn_batch_neighbors_features, oversampling_method=SMOTE, num_neighbors=num_neighbors, num_augmentations=num_augmentations)
+            SMOTE_siamese_knn_batch_tta_samples = self.generate_oversampling_tta_samples(siamese_knn_batch_neighbors_features, oversampling_method=SMOTE, num_neighbors=num_neighbors, num_augmentations=num_augmentations)
+            BorderlineSMOTE_regular_knn_batch_tta_samples = self.generate_oversampling_tta_samples(regular_knn_batch_neighbors_features, oversampling_method=BorderlineSMOTE, num_neighbors=num_neighbors, num_augmentations=num_augmentations)
+            BorderlineSMOTE_siamese_knn_batch_tta_samples = self.generate_oversampling_tta_samples(siamese_knn_batch_neighbors_features, oversampling_method=BorderlineSMOTE, num_neighbors=num_neighbors, num_augmentations=num_augmentations)
+            gaussian_batch_tta_samples = self.generate_random_noise_tta_samples(x_batch_test.numpy(), num_augmentations=num_augmentations)
             
             # batch_tta_reconstruction: ndarray of shape: (batch_size, num_augmentations)
-            regular_knn_batch_tta_reconstruction = self.test_step(regular_knn_batch_tta_samples).numpy()
-            siamese_knn_batch_tta_reconstruction = self.test_step(siamese_knn_batch_tta_samples).numpy()
+            kmeans_regular_knn_batch_tta_reconstruction = self.test_step(kmeans_regular_knn_batch_tta_samples).numpy()
+            kmeans_siamese_knn_batch_tta_reconstruction = self.test_step(kmeans_siamese_knn_batch_tta_samples).numpy()
+            SMOTE_regular_knn_batch_tta_reconstruction = self.test_step(SMOTE_regular_knn_batch_tta_samples).numpy()
+            SMOTE_siamese_knn_batch_tta_reconstruction = self.test_step(SMOTE_siamese_knn_batch_tta_samples).numpy()
+            BorderlineSMOTE_regular_knn_batch_tta_reconstruction = self.test_step(BorderlineSMOTE_regular_knn_batch_tta_samples).numpy()
+            BorderlineSMOTE_siamese_knn_batch_tta_reconstruction = self.test_step(BorderlineSMOTE_siamese_knn_batch_tta_samples).numpy()
+            gaussian_batch_tta_reconstruction = self.test_step(gaussian_batch_tta_samples).numpy()
             
-            for primary_loss, tta_loss in list(zip(reconstruction_loss, regular_knn_batch_tta_reconstruction)):
+            # combine original test samples' reconstruction with the kmeans regular-NN TTA samples' reconstruction
+            for primary_loss, tta_loss in list(zip(reconstruction_loss, kmeans_regular_knn_batch_tta_reconstruction)):
                 combined_tta_loss = np.concatenate([[primary_loss], tta_loss])
-                regular_knn_test_loss.append(np.mean(combined_tta_loss))
+                kmeans_regular_knn_test_loss.append(np.mean(combined_tta_loss))
 
-
-            for primary_loss, tta_loss in list(zip(reconstruction_loss, siamese_knn_batch_tta_reconstruction)):
+            # combine original test samples' reconstruction with the kmeans siamese-NN TTA samples' reconstruction
+            for primary_loss, tta_loss in list(zip(reconstruction_loss, kmeans_siamese_knn_batch_tta_reconstruction)):
                 combined_tta_loss = np.concatenate([[primary_loss], tta_loss])
-                siamese_knn_test_loss.append(np.mean(combined_tta_loss))
+                kmeans_siamese_knn_test_loss.append(np.mean(combined_tta_loss))
 
+            # combine original test samples' reconstruction with the SMOTE regular-NN TTA samples' reconstruction
+            for primary_loss, tta_loss in list(zip(reconstruction_loss, SMOTE_regular_knn_batch_tta_reconstruction)):
+                combined_tta_loss = np.concatenate([[primary_loss], tta_loss])
+                SMOTE_regular_knn_tta_test_loss.append(np.mean(combined_tta_loss))
+
+            # combine original test samples's reconstruction with the SMOTE siamese-NN TTA samples' reconstruction
+            for primary_loss, tta_loss in list(zip(reconstruction_loss, SMOTE_siamese_knn_batch_tta_reconstruction)):
+                combined_tta_loss = np.concatenate([[primary_loss], tta_loss])
+                SMOTE_siamese_knn_tta_test_loss.append(np.mean(combined_tta_loss))
+                
+            # combine original test samples' reconstruction with the BorderlineSMOTE regular-NN TTA samples' reconstruction
+            for primary_loss, tta_loss in list(zip(reconstruction_loss, BorderlineSMOTE_regular_knn_batch_tta_reconstruction)):
+                combined_tta_loss = np.concatenate([[primary_loss], tta_loss])
+                BorderlineSMOTE_regular_knn_tta_test_loss.append(np.mean(combined_tta_loss))
+            
+            # combine original test samples' reconstruction with the BorderlineSMOTE siamese-NN TTA samples' reconstruction
+            for primary_loss, tta_loss in list(zip(reconstruction_loss, BorderlineSMOTE_siamese_knn_batch_tta_reconstruction)):
+                combined_tta_loss = np.concatenate([[primary_loss], tta_loss])
+                BorderlineSMOTE_siamese_knn_tta_test_loss.append(np.mean(combined_tta_loss))
+            
+            # combine original test sampels' reconstuction with the gaussian TTA samples' reconstruction
+            for primary_loss, tta_loss, in list(zip(reconstruction_loss, gaussian_batch_tta_reconstruction)):
+                combined_tta_loss = np.concatenate([[primary_loss], tta_loss])
+                gaussian_tta_test_loss.append(np.mean(combined_tta_loss))
+
+        # flatten the train_loss and the test_labels vectors
         train_loss = np.concatenate(train_loss, axis=0)
-
         test_labels = np.concatenate(test_labels, axis=0)
 
-        combined_regular_knn_loss = np.concatenate([train_loss, regular_knn_test_loss], axis=0)
-        combined_siamese_knn_loss = np.concatenate([train_loss, siamese_knn_test_loss], axis=0)
+        # combine the train_loss with each of every tta method
+        combined_kmeans_regular_knn_loss = np.concatenate([train_loss, kmeans_regular_knn_test_loss], axis=0)
+        combined_kmeans_siamese_knn_loss = np.concatenate([train_loss, kmeans_siamese_knn_test_loss], axis=0)
+        combined_SMOTE_regular_knn_tta_loss = np.concatenate([train_loss, SMOTE_regular_knn_tta_test_loss], axis=0)
+        combined_SMOTE_siamese_knn_tta_loss = np.concatenate([train_loss, SMOTE_siamese_knn_tta_test_loss], axis=0)
+        combined_BorderlineSMOTE_regular_knn_tta_loss = np.concatenate([train_loss, BorderlineSMOTE_regular_knn_tta_test_loss], axis=0)
+        combined_BorderlineSMOTE_siamese_knn_tta_loss = np.concatenate([train_loss, BorderlineSMOTE_siamese_knn_tta_test_loss], axis=0)
+        combined_gaussian_tta_loss = np.concatenate([train_loss, gaussian_tta_test_loss], axis=0)
 
         # setting the threshold to be a value of a 80% of the loss of all the examples
         # give a reference from the GMM papper
-        regular_knn_thresh = np.percentile(combined_regular_knn_loss, self.percentile)
-        siamese_knn_thresh = np.percentile(combined_siamese_knn_loss, self.percentile)
-        print("Regular TTA threshold :", regular_knn_thresh)
-        print("Siamese TTA threshold :", siamese_knn_thresh)
-        # thresh = np.mean(combined_loss) + np.std(combined_loss)
+        kmeans_regular_knn_thresh = np.percentile(combined_kmeans_regular_knn_loss, self.percentile)
+        kmeans_siamese_knn_thresh = np.percentile(combined_kmeans_siamese_knn_loss, self.percentile)
+        SMOTE_regular_knn_tta_thresh = np.percentile(combined_SMOTE_regular_knn_tta_loss, self.percentile)
+        SMOTE_siamese_knn_tta_thresh = np.percentile(combined_SMOTE_siamese_knn_tta_loss, self.percentile)
+        BorderlineSMOTE_regular_knn_tta_thresh = np.percentile(combined_BorderlineSMOTE_regular_knn_tta_loss, self.percentile)
+        BorderlineSMOTE_siamese_knn_tta_thresh = np.percentile(combined_BorderlineSMOTE_siamese_knn_tta_loss, self.percentile)
+        gaussian_tta_thresh = np.percentile(combined_gaussian_tta_loss, self.percentile)
 
-        regular_knn_y_pred = tf.where(regular_knn_test_loss > regular_knn_thresh, 1, 0).numpy().astype(int)
-        siamese_knn_y_pred = tf.where(siamese_knn_test_loss > siamese_knn_thresh, 1, 0).numpy().astype(int)
+        # printing calculated thresholds for each of every tta method
+        print("k-Means Regular-KNN TTA threshold :", kmeans_regular_knn_thresh)
+        print("k-Means Siamese-KNN TTA threshold :", kmeans_siamese_knn_thresh)
+        print("SMOTE Regular-KNN TTA threshold :", SMOTE_regular_knn_tta_thresh)
+        print("SMOTE Siamese-KNN TTA threshold :", SMOTE_siamese_knn_tta_thresh)
+        print("BorderlineSMOTE Regular-KNN TTA threshold :", BorderlineSMOTE_regular_knn_tta_thresh)
+        print("BorderlineSMOTE Siamese-KNN TTA threshold :", BorderlineSMOTE_siamese_knn_tta_thresh)
+        print("Gaussian TTA threshold :", gaussian_tta_thresh)
+
+        # getting the 0,1 vector of each of every tta method by applying the threshold
+        kmeans_regular_knn_y_pred = tf.where(kmeans_regular_knn_test_loss > kmeans_regular_knn_thresh, 1, 0).numpy().astype(int)
+        kmeans_siamese_knn_y_pred = tf.where(kmeans_siamese_knn_test_loss > kmeans_siamese_knn_thresh, 1, 0).numpy().astype(int)
+        SMOTE_regular_knn_tta_y_pred = tf.where(SMOTE_regular_knn_tta_test_loss > SMOTE_regular_knn_tta_thresh, 1, 0).numpy().astype(int)
+        SMOTE_siamese_knn_tta_y_pred = tf.where(SMOTE_siamese_knn_tta_test_loss > SMOTE_siamese_knn_tta_thresh, 1, 0).numpy().astype(int)
+        BorderlineSMOTE_regular_knn_tta_y_pred = tf.where(BorderlineSMOTE_regular_knn_tta_test_loss > BorderlineSMOTE_regular_knn_tta_thresh, 1, 0).numpy().astype(int)
+        BorderlineSMOTE_siamese_knn_tta_y_pred = tf.where(BorderlineSMOTE_siamese_knn_tta_test_loss > BorderlineSMOTE_siamese_knn_tta_thresh, 1, 0).numpy().astype(int)
+        gaussian_tta_y_pred = tf.where(gaussian_tta_test_loss > gaussian_tta_thresh, 1, 0).numpy().astype(int)
+
         y_true = np.asarray(test_labels).astype(int)
 
         from sklearn.metrics import precision_recall_fscore_support as prf, accuracy_score, roc_auc_score
 
-        regular_knn_accuracy = accuracy_score(y_true, regular_knn_y_pred)
-        siamese_knn_accuracy = accuracy_score(y_true, siamese_knn_y_pred)
+        # calculating accuracy
+        kmeans_regular_knn_accuracy = accuracy_score(y_true, kmeans_regular_knn_y_pred)
+        kmeans_siamese_knn_accuracy = accuracy_score(y_true, kmeans_siamese_knn_y_pred)
+        SMOTE_regular_knn_tta_accuracy = accuracy_score(y_true, SMOTE_regular_knn_tta_y_pred)
+        SMOTE_siamese_knn_tta_accuracy = accuracy_score(y_true, SMOTE_siamese_knn_tta_y_pred)
+        BorderlineSMOTE_regular_knn_tta_accuracy = accuracy_score(y_true, BorderlineSMOTE_regular_knn_tta_y_pred)
+        BorderlineSMOTE_siamese_knn_tta_accuracy = accuracy_score(y_true, BorderlineSMOTE_siamese_knn_tta_y_pred)
+        guassian_tta_accuracy = accuracy_score(y_true, gaussian_tta_y_pred)
 
-        regular_knn_precision, regular_knn_recall, regular_knn_f_score, regular_knn_support = prf(y_true, regular_knn_y_pred, average='binary')
-        siamese_knn_precision, siamese_knn_recall, siamese_knn_f_score, siamese_knn_support = prf(y_true, siamese_knn_y_pred, average='binary')
+        # calculating precision, recall and f1 scores
+        kmeans_regular_knn_precision, kmeans_regular_knn_recall, kmeans_regular_knn_f_score, kmeans_regular_knn_support = prf(y_true, kmeans_regular_knn_y_pred, average='binary')
+        kmeans_siamese_knn_precision, kmeans_siamese_knn_recall, kmeans_siamese_knn_f_score, kmeans_siamese_knn_support = prf(y_true, kmeans_siamese_knn_y_pred, average='binary')
+        SMOTE_regular_knn_tta_precision, SMOTE_regular_knn_tta_recall, SMOTE_regular_knn_tta_f_score, SMOTE_regular_knn_tta_support = prf(y_true, SMOTE_regular_knn_tta_y_pred, average='binary')
+        SMOTE_siamese_knn_tta_precision, SMOTE_siamese_knn_tta_recall, SMOTE_siamese_knn_tta_f_score, SMOTE_siamese_knn_tta_support = prf(y_true, SMOTE_siamese_knn_tta_y_pred, average='binary')
+        BorderlineSMOTE_regular_knn_tta_precision, BorderlineSMOTE_regular_knn_tta_recall, BorderlineSMOTE_regular_knn_tta_f_score, BorderlineSMOTE_regular_knn_tta_support = prf(y_true, BorderlineSMOTE_regular_knn_tta_y_pred, average='binary')
+        BorderlineSMOTE_siamese_knn_tta_precision, BorderlineSMOTE_siamese_knn_tta_recall, BorderlineSMOTE_siamese_knn_tta_f_score, BorderlineSMTOE_siamese_knn_tta_support = prf(y_true, BorderlineSMOTE_siamese_knn_tta_y_pred, average='binary')
+        gaussian_tta_precision, gaussian_tta_recall, gaussian_tta_f_score, gaussian_tta_suppoer = prf(y_true, gaussian_tta_y_pred, average='binary')
 
-        # regular_knn_auc = roc_auc_score(y_true, regular_knn_y_pred)
-        regular_knn_auc = roc_auc_score(y_true, regular_knn_test_loss)
-        # siamese_knn_auc = roc_auc_score(y_true, siamese_knn_y_pred)
-        siamese_knn_auc = roc_auc_score(y_true, siamese_knn_test_loss)
+        # calculating AUC
+        kmeans_regular_knn_auc = roc_auc_score(y_true, kmeans_regular_knn_test_loss)
+        kmeans_siamese_knn_auc = roc_auc_score(y_true, kmeans_siamese_knn_test_loss)
+        SMOTE_regular_knn_tta_auc = roc_auc_score(y_true, SMOTE_regular_knn_tta_test_loss)
+        SMOTE_siamese_knn_tta_auc = roc_auc_score(y_true, SMOTE_siamese_knn_tta_test_loss)
+        BorderlineSMOTE_regular_knn_tta_auc = roc_auc_score(y_true, BorderlineSMOTE_regular_knn_tta_test_loss)
+        BorderlineSMOTE_siamese_knn_tta_auc = roc_auc_score(y_true, BorderlineSMOTE_siamese_knn_tta_test_loss)
+        gaussian_tta_auc = roc_auc_score(y_true, gaussian_tta_test_loss)
 
-        # save both test metrics in self
-        self.regular_tta_metrics = (regular_knn_accuracy, regular_knn_precision, regular_knn_recall, regular_knn_f_score, regular_knn_auc)
-        self.siamese_tta_metrics = (siamese_knn_accuracy, siamese_knn_precision, siamese_knn_recall, siamese_knn_f_score, siamese_knn_auc)
+        # save both test metrics and y_pred_loss vectors in self
+        self.kmeans_regular_knn_tta_metrics = (kmeans_regular_knn_accuracy, kmeans_regular_knn_precision, kmeans_regular_knn_recall, kmeans_regular_knn_f_score, kmeans_regular_knn_auc)
+        self.kmeans_siamese_knn_tta_metrics = (kmeans_siamese_knn_accuracy, kmeans_siamese_knn_precision, kmeans_siamese_knn_recall, kmeans_siamese_knn_f_score, kmeans_siamese_knn_auc)
+        self.SMOTE_regular_knn_tta_metrics = (SMOTE_regular_knn_tta_accuracy, SMOTE_regular_knn_tta_precision, SMOTE_regular_knn_tta_recall, SMOTE_regular_knn_tta_f_score, SMOTE_regular_knn_tta_auc)
+        self.SMOTE_siamese_knn_tta_metrics = (SMOTE_siamese_knn_tta_accuracy, SMOTE_siamese_knn_tta_precision, SMOTE_siamese_knn_tta_recall, SMOTE_siamese_knn_tta_f_score, SMOTE_siamese_knn_tta_auc)
+        self.BorderlineSMOTE_regular_knn_tta_metrics = (BorderlineSMOTE_regular_knn_tta_accuracy, BorderlineSMOTE_regular_knn_tta_precision, BorderlineSMOTE_regular_knn_tta_recall, BorderlineSMOTE_regular_knn_tta_f_score, BorderlineSMOTE_regular_knn_tta_auc)
+        self.BorderlineSMOTE_siamese_knn_tta_metrics = (BorderlineSMOTE_siamese_knn_tta_accuracy, BorderlineSMOTE_siamese_knn_tta_precision, BorderlineSMOTE_siamese_knn_tta_recall, BorderlineSMOTE_siamese_knn_tta_f_score, BorderlineSMOTE_siamese_knn_tta_auc)
+        self.gaussian_tta_metrics = (guassian_tta_accuracy, gaussian_tta_precision, gaussian_tta_recall, gaussian_tta_f_score, gaussian_tta_auc)
 
-        self.regular_tta_y_pred_loss = regular_knn_test_loss
-        self.siamese_tta_y_pred_loss = siamese_knn_test_loss
+        self.kmeans_regular_knn_tta_y_pred_loss = kmeans_regular_knn_test_loss
+        self.kmeans_siamese_knn_tta_y_pred_loss = kmeans_siamese_knn_test_loss
+        self.SMOTE_regular_knn_tta_y_pred_loss = SMOTE_regular_knn_tta_test_loss
+        self.SMOTE_siamese_knn_tta_y_pred_loss = SMOTE_siamese_knn_tta_test_loss
+        self.BorderlineSMOTE_regular_knn_tta_y_pred_loss = BorderlineSMOTE_regular_knn_tta_test_loss
+        self.BorderlineSMOTE_siamese_knn_tta_y_pred_loss = BorderlineSMOTE_siamese_knn_tta_test_loss
+        self.gaussian_tta_y_pred_loss = gaussian_tta_test_loss
 
     @tf.function
     def test_step(self, inputs):
@@ -301,7 +395,7 @@ class Solver:
 
         return reconstruction_loss
 
-    def generate_tta_samples(self, batch_neighbors_features, num_augmentations):
+    def generate_kmeans_tta_samples(self, batch_neighbors_features, num_augmentations):
         batch_tta_samples = []
         for neighbors_features in batch_neighbors_features:
             kmeans_model = cuKMeans(n_clusters=num_augmentations, random_state=1234)
@@ -313,8 +407,38 @@ class Solver:
         
         return np.array(batch_tta_samples)
 
+    def generate_oversampling_tta_samples(self, oversampling_batch_neighbors_features, num_neighbors, num_augmentations, oversampling_method):
+        oversampling_batch_tta_samples = np.zeros((32, num_augmentations, self.features_dim))
+        for index_in_batch, original_neighbors_features in enumerate(oversampling_batch_neighbors_features):
+            original_neighbors_labels = np.zeros((original_neighbors_features.shape[0],))
+            
+            # create fake samples for the imblearn dataset
+            fake_neighbors_features = np.zeros((num_neighbors + num_augmentations, self.features_dim))
+            fake_neighbors_labels = np.ones((fake_neighbors_features.shape[0],))
+
+            # create the imblearn dataset
+            imblearn_features = np.concatenate([original_neighbors_features, fake_neighbors_features])
+            imblearn_labels = np.concatenate([original_neighbors_labels, fake_neighbors_labels])
+
+            oversampling_obj = oversampling_method(k_neighbors=num_neighbors-1, random_state=42)
+            X_res, y_res = oversampling_obj.fit_resample(imblearn_features, imblearn_labels)
+
+            current_augmentations = X_res[-num_augmentations:]
+            oversampling_batch_tta_samples[index_in_batch] = current_augmentations
+        
+        return oversampling_batch_tta_samples
+
+    def generate_random_noise_tta_samples(self, x_batch_test, num_augmentations):
+        size = x_batch_test.shape
+        # scale = 0.2
+        random_noise = np.random.normal(size=size)
+        # adding the noise to the original batch test samples. expanding the middle dim of x_batch_test to make it (batch_size, 1, dataset_features_dim)
+        gaussian_tta_samples = np.expand_dims(x_batch_test, axis=1) + random_noise
+
+        return gaussian_tta_samples
+
     def print_test_results(self):
-        if self.baseline_metrics is None or self.regular_tta_metrics is None or self.siamese_tta_metrics is None:
+        if self.baseline_metrics is None or self.kmeans_regular_knn_tta_metrics is None or self.kmeans_siamese_knn_tta_metrics is None or self.SMOTE_regular_knn_tta_metrics is None or self.SMOTE_siamese_knn_tta_metrics is None or self.BorderlineSMOTE_regular_knn_tta_metrics is None or self.BorderlineSMOTE_siamese_knn_tta_metrics is None or self.gaussian_tta_metrics is None:
             raise ValueError("run test and tta_test functions and then call print_test_results function")
         
         print("*"*100)
@@ -322,25 +446,64 @@ class Solver:
         print("Accuracy : {:0.4f}, Precision : {:0.4f}, Recall : {:0.4f}, F-score : {:0.4f}, AUC : {:0.4f}".format(*self.baseline_metrics))
 
         print("*"*100)
-        print("---- Regular TTA Test ----")
-        print("Accuracy : {:0.4f}, Precision : {:0.4f}, Recall : {:0.4f}, F-score : {:0.4f}, AUC : {:0.4f}".format(*self.regular_tta_metrics))
+        print("---- Gaussian-Noise TTA Test ----")
+        print("Accuracy : {:0.4f}, Precision : {:0.4f}, Recall : {:0.4f}, F-score : {:0.4f}, AUC : {:0.4f}".format(*self.gaussian_tta_metrics))
 
         print("*"*100)
-        print("---- Siamese TTA Test ----")
-        print("Accuracy : {:0.4f}, Precision : {:0.4f}, Recall : {:0.4f}, F-score : {:0.4f}, AUC : {:0.4f}".format(*self.siamese_tta_metrics))
+        print("---- SMOTE Regular-KNN TTA Test ----")
+        print("Accuracy : {:0.4f}, Precision : {:0.4f}, Recall : {:0.4f}, F-score : {:0.4f}, AUC : {:0.4f}".format(*self.SMOTE_regular_knn_tta_metrics))
+
+        print("*"*100)
+        print("---- SMOTE Siamese-KNN TTA Test ----")
+        print("Accuracy : {:0.4f}, Precision : {:0.4f}, Recall : {:0.4f}, F-score : {:0.4f}, AUC : {:0.4f}".format(*self.SMOTE_siamese_knn_tta_metrics))
+
+        print("*"*100)
+        print("---- Borderline-SMOTE Regular-KNN TTA Test ----")
+        print("Accuracy : {:0.4f}, Precision : {:0.4f}, Recall : {:0.4f}, F-score : {:0.4f}, AUC : {:0.4f}".format(*self.BorderlineSMOTE_regular_knn_tta_metrics))
+
+        print("*"*100)
+        print("---- Borderline-SMOTE Siamese-KNN TTA Test ----")
+        print("Accuracy : {:0.4f}, Precision : {:0.4f}, Recall : {:0.4f}, F-score : {:0.4f}, AUC : {:0.4f}".format(*self.BorderlineSMOTE_siamese_knn_tta_metrics))
+
+        print("*"*100)
+        print("---- k-Means TTA Regular-KNN Test ----")
+        print("Accuracy : {:0.4f}, Precision : {:0.4f}, Recall : {:0.4f}, F-score : {:0.4f}, AUC : {:0.4f}".format(*self.kmeans_regular_knn_tta_metrics))
+
+        print("*"*100)
+        print("---- k-Means TTA Siamese-KNN Test ----")
+        print("Accuracy : {:0.4f}, Precision : {:0.4f}, Recall : {:0.4f}, F-score : {:0.4f}, AUC : {:0.4f}".format(*self.kmeans_siamese_knn_tta_metrics))
         print("*"*100)
 
         # plot roc curve
         # skplt.metrics.plot_roc_curve(self.y_true, self.baseline_y_pred)
-        baseline_accuracy, baseline_precision, baseline_recall, baseline_f_score, baseline_auc = self.baseline_metrics 
+        baseline_auc = self.baseline_metrics[-1]
         baseline_fpr, baseline_tpr, threshold = roc_curve(self.y_true, self.baseline_y_pred_loss)
-        plt.plot(baseline_fpr, baseline_tpr, label='AUC = {:.3f}'.format(baseline_auc))
-        regular_knn_accuracy, regular_knn_precision, regular_knn_recall, regular_knn_f_score, regular_knn_auc = self.regular_tta_metrics
-        regular_tta_fpr, regular_tta_tpr, threshold = roc_curve(self.y_true, self.regular_tta_y_pred_loss)
-        plt.plot(regular_tta_fpr, regular_tta_tpr, label='AUC = {:.3f}'.format(regular_knn_auc))
-        siamese_knn_accuracy, siamese_knn_precision, siamese_knn_recall, siamese_knn_f_score, siamese_knn_auc = self.siamese_tta_metrics 
-        siamese_tta_fpr, siamese_tta_tpr, threshold = roc_curve(self.y_true, self.siamese_tta_y_pred_loss)
-        plt.plot(siamese_tta_fpr, siamese_tta_tpr, label='AUC = {:.3f}'.format(siamese_knn_auc))
+        plt.plot(baseline_fpr, baseline_tpr, label='No TTA AUC = {:.3f}'.format(baseline_auc))
+
+        kmeans_regular_knn_tta_auc = self.kmeans_regular_knn_tta_metrics[-1]
+        kmeans_regular_knn_tta_fpr, kmeans_regular_knn_tta_tpr, threshold = roc_curve(self.y_true, self.kmeans_regular_knn_tta_y_pred_loss)
+        plt.plot(kmeans_regular_knn_tta_fpr, kmeans_regular_knn_tta_tpr, label='k-Means Regular-NN TTA AUC = {:.3f}'.format(kmeans_regular_knn_tta_auc))
+
+        kmeans_siamese_knn_tta_auc = self.kmeans_siamese_knn_tta_metrics[-1] 
+        kmeans_siamese_knn_tta_fpr, kmeans_siamese_knn_tta_tpr, threshold = roc_curve(self.y_true, self.kmeans_siamese_knn_tta_y_pred_loss)
+        plt.plot(kmeans_siamese_knn_tta_fpr, kmeans_siamese_knn_tta_tpr, label='k-Means Siamese-NN TTA AUC = {:.3f}'.format(kmeans_siamese_knn_tta_auc))
+        
+        SMOTE_regular_knn_tta_auc = self.SMOTE_regular_knn_tta_metrics[-1]
+        SMOTE_regular_knn_tta_fpr, SMOTE_regular_knn_tta_tpr, threshold = roc_curve(self.y_true, self.SMOTE_regular_knn_tta_y_pred_loss)
+        plt.plot(SMOTE_regular_knn_tta_fpr, SMOTE_regular_knn_tta_tpr, label='SMOTE Regular-NN TTA AUC = {:.3f}'.format(SMOTE_regular_knn_tta_auc))
+
+        SMOTE_siamese_knn_tta_auc = self.SMOTE_siamese_knn_tta_metrics[-1]
+        SMOTE_siamese_knn_tta_fpr, SMOTE_siamese_knn_tta_tpr, threshold = roc_curve(self.y_true, self.SMOTE_siamese_knn_tta_y_pred_loss)
+        plt.plot(SMOTE_siamese_knn_tta_fpr, SMOTE_siamese_knn_tta_tpr, label='SMOTE Siamese-NN TTA AUC = {:.3f}'.format(SMOTE_siamese_knn_tta_auc))
+
+        BorderlineSMOTE_regular_knn_tta_auc = self.BorderlineSMOTE_regular_knn_tta_metrics[-1]
+        BorderlineSMOTE_regular_knn_tta_fpr, BorderlineSMOTE_regular_knn_tta_tpr, threshold = roc_curve(self.y_true, self.BorderlineSMOTE_regular_knn_tta_y_pred_loss)
+        plt.plot(BorderlineSMOTE_regular_knn_tta_fpr, BorderlineSMOTE_regular_knn_tta_tpr, label='BorderlineSMOTE Regular-NN TTA AUC = {:.3f}'.format(BorderlineSMOTE_regular_knn_tta_auc))
+
+        BorderlineSMOTE_siamese_knn_tta_auc = self.BorderlineSMOTE_siamese_knn_tta_metrics[-1]
+        BorderlineSMOTE_siamese_knn_tta_fpr, BorderlineSMOTE_siamese_knn_tta_tpr, threshold = roc_curve(self.y_true, self.BorderlineSMOTE_siamese_knn_tta_y_pred_loss)
+        plt.plot(BorderlineSMOTE_siamese_knn_tta_fpr, BorderlineSMOTE_siamese_knn_tta_tpr, label='BorderlineSMOTE Siamese-NN TTA AUC = {:.3f}'.format(BorderlineSMOTE_siamese_knn_tta_auc))
+
         plt.plot([0, 1], [0, 1], linestyle='dashed', color='gray')
         plt.xlim([0, 1])
         plt.ylim([0, 1])
