@@ -26,6 +26,9 @@ from cuml.cluster import KMeans as cuKMeans
 from siamese_network_model import SiameseNetwork
 from sklearn.neighbors import NearestNeighbors
 
+from imblearn.over_sampling import SMOTE
+from imblearn.over_sampling import BorderlineSMOTE
+
 DATA_PATH_2017 = "/home/nivgold/datasets/IDS2017"
 DATA_PATH_2018 = "/home/nivgold/datasets/IDS2018/Processed Traffic Data for ML Algorithms/Thuesday-20-02-2018_TrafficForML_CICFlowMeter.csv"
 DATA_PATH_NSLKDD = "/home/nivgold/datasets/NSL-KDD"
