@@ -10,6 +10,12 @@ import numpy as np
 np.random.seed(1234)
 import time
 
+import argparse
+parser = argparse.ArgumentParser()
+parser.add_argument("-n", "--neighbors", dest="num_neighbors", default=10, type=int, help="The number of neighbors to retrieve from the Neareset Neighbors model")
+parser.add_argument("-a", "--augmentations", dest="num_augmentations", default=4, type=int, help="The number test-time augmentations to apply on every test sample")
+args = parser.parse_args()
+
 # gpus = tf.config.experimental.list_physical_devices('GPU')
 # tf.config.experimental.set_memory_growth(gpus[0], True)
 
@@ -53,8 +59,8 @@ print("--- Baseline testing finished after: ", end='')
 get_execute_time(start_time, end_testing)
 
 # TEST WITH TTA
-num_neighbors = 10
-num_augmentations = 7
+num_neighbors = args.num_neighbors
+num_augmentations = args.num_augmentations
 
 start_time = time.time()
 print(f"--- Start TTA testing with: \t {num_neighbors} neighbors, {num_augmentations} TTA augmentations")
