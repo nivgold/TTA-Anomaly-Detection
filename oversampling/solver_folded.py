@@ -95,7 +95,6 @@ class Solver:
         from sklearn.model_selection import StratifiedKFold
         from sklearn.model_selection import KFold
         skf = StratifiedKFold(n_splits=self.n_folds, shuffle=True, random_state=42)
-        # skf = StratifiedKFold(n_splits=self.n_folds, shuffle=False)
 
         def gen():
             for step, (train_index, test_index) in enumerate(skf.split(X, y)):
