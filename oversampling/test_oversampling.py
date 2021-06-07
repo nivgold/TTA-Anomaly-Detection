@@ -5,15 +5,15 @@ import ids2017_dataset as md17
 import ids2018_dataset as md18
 import nslkdd_dataset as nsl
 import creditcard_dataset as cc
-import satellite_dataset as sd
-import lympho_dataset as lymds
-import cardio_dataset as carmd
-import thyroid_dataset as thymd
-import mammo_dataset as mammd
-import vowels_dataset as vomd
-import yeast_dataset as yemd
-import satimage_dataset as satmd
-import shuttle_dataset as shmd
+import satellite_dataset_folded as sd
+import lympho_dataset_folded as lymds
+import cardio_dataset_folded as carmd
+import thyroid_dataset_folded as thymd
+import mammo_dataset_folded as mammd
+import vowels_dataset_folded as vomd
+import yeast_dataset_folded as yemd
+import satimage_dataset_folded as satmd
+import shuttle_dataset_folded as shmd
 
 import numpy as np
 import pandas as pd
