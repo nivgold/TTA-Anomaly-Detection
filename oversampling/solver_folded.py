@@ -99,18 +99,14 @@ class Solver:
 
         def gen():
             for step, (train_index, test_index) in enumerate(skf.split(X, y)):
-                # print(f"Train indecis: {train_index}")
-                # print(f"Test indecis: {test_index}")
                 train_features, train_labels = X[train_index], y[train_index]
+
                 # FILTERING THE ANOMALY SAMPLES FROM THE TRAIN DATA !!!!!!!!!!!!!!!!!!!!!
                 train_normal_mask = train_labels == 0
                 train_features = train_features[train_normal_mask]
                 train_labels = train_labels[train_normal_mask]
+
                 test_features, test_labels = X[test_index], y[test_index]
-                print("-"*100)
-                print("Split index: ", step)
-                print("train 1 mean: ", np.mean(train_labels))
-                print("test 1 mean: ", np.mean(test_labels))
                 yield train_features, train_labels, test_features, test_labels
         
         # creating the folded dataset that contains all the train and test folds
@@ -123,7 +119,6 @@ class Solver:
             train_ds = (tf.data.Dataset.from_tensor_slices((X_train, y_train))
                 .cache()
                 .batch(32)
-
             )
             
             test_ds = (tf.data.Dataset.from_tensor_slices((X_test, y_test))
@@ -194,7 +189,7 @@ class Solver:
             train_ds = self.folded_train_datasets_list[fold_index]
             encoder, decoder = self.models_list[fold_index]
             train_step_func = Solver.train_step()
-            print(f"Training Fold index: {fold_index+1}")
+            print(f"--- Training K-Fold Split index: {fold_index+1}")
             self._train(train_ds, encoder, decoder, train_step_func)
 
 
@@ -203,7 +198,7 @@ class Solver:
         # loss function
         loss_func = tf.keras.losses.MeanSquaredError()
         optimizer = tf.keras.optimizers.Adam()
-        for epoch in range(self.num_epochs):
+        for epoch in range(1, self.num_epochs+1):
             epoch_loss_mean = tf.keras.metrics.Mean()
 
             for step, (x_batch_train, y_batch_train) in enumerate(train_ds):
@@ -215,8 +210,8 @@ class Solver:
                 epoch_loss_mean.update_state(loss)
 
             # update metrics after each epoch
-            if epoch != 0 and (epoch%100 == 0 or epoch==499):
-                print(f'Epoch {epoch+1} loss mean: {epoch_loss_mean.result()}')
+            if epoch==1 or epoch%100 == 0:
+                print(f'Epoch {epoch} loss mean: {epoch_loss_mean.result()}')
 
     @staticmethod
     def train_step():
@@ -245,9 +240,9 @@ class Solver:
             # test set-up
             train_ds = self.folded_train_datasets_list[fold_index]
             test_ds = self.folded_test_datasets_list[fold_index]
-            trained_encoder, trained_decoder = self.models_list[fold_index][0], self.models_list[fold_index][1]
+            trained_encoder, trained_decoder = self.models_list[fold_index]
             test_step_func = Solver.test_step()
-            print(f"Testing Fold index: {fold_index+1}")
+            print(f"--- Testing K-Fold Split index: {fold_index+1}")
             self._test(train_ds, test_ds, trained_encoder, trained_decoder, test_step_func)
         
         self.baseline_metrics_folds_list = np.array(self.baseline_metrics_folds_list)
@@ -321,7 +316,7 @@ class Solver:
             test_ds = self.folded_test_datasets_list[fold_index]
             trained_encoder, trained_decoder = self.models_list[fold_index][0], self.models_list[fold_index][1]
             test_step_func = Solver.test_step()
-            print(f"TTA Testing Fold index: {fold_index+1}")
+            print(f"--- TTA Testing Fold index: {fold_index+1}")
             self._test_tta(train_ds, test_ds, trained_encoder, trained_decoder, num_neighbors, num_augmentations, test_step_func)
 
         self.kmeans_regular_knn_tta_metrics_folds_list = np.array(self.kmeans_regular_knn_tta_metrics_folds_list)
@@ -342,8 +337,6 @@ class Solver:
         for step, (x_batch_train, y_batch_train) in enumerate(train_ds):
             loss = test_step_func(x_batch_train, trained_encoder, trained_decoder, loss_func)
             train_loss.append(loss.numpy())
-
-        print("Done iterating through all training set")
 
         # iterating through the test to calculate the loss of every test instance
         kmeans_regular_knn_test_loss = []
@@ -449,15 +442,6 @@ class Solver:
         BorderlineSMOTE_regular_knn_tta_thresh = np.percentile(combined_BorderlineSMOTE_regular_knn_tta_loss, self.percentile)
         BorderlineSMOTE_siamese_knn_tta_thresh = np.percentile(combined_BorderlineSMOTE_siamese_knn_tta_loss, self.percentile)
         gaussian_tta_thresh = np.percentile(combined_gaussian_tta_loss, self.percentile)
-
-        # # printing calculated thresholds for each of every tta method
-        # print("k-Means Regular-KNN TTA threshold :", kmeans_regular_knn_thresh)
-        # print("k-Means Siamese-KNN TTA threshold :", kmeans_siamese_knn_thresh)
-        # print("SMOTE Regular-KNN TTA threshold :", SMOTE_regular_knn_tta_thresh)
-        # print("SMOTE Siamese-KNN TTA threshold :", SMOTE_siamese_knn_tta_thresh)
-        # print("BorderlineSMOTE Regular-KNN TTA threshold :", BorderlineSMOTE_regular_knn_tta_thresh)
-        # print("BorderlineSMOTE Siamese-KNN TTA threshold :", BorderlineSMOTE_siamese_knn_tta_thresh)
-        # print("Gaussian TTA threshold :", gaussian_tta_thresh)
 
         # getting the 0,1 vector of each of every tta method by applying the threshold
         kmeans_regular_knn_y_pred = tf.where(kmeans_regular_knn_test_loss > kmeans_regular_knn_thresh, 1, 0).numpy().astype(int)
@@ -638,42 +622,42 @@ class Solver:
         print("Accuracy : {:0.4f}+-{:0.4f}, Precision : {:0.4f}+-{:0.4f}, Recall : {:0.4f}+-{:0.4f}, F-score : {:0.4f}+-{:0.4f}, AUC : {:0.4f}+-{:0.4f}".format(*print_list))
         print("*"*100)
 
-        # plot roc curve
-        # skplt.metrics.plot_roc_curve(self.y_true, self.baseline_y_pred)
-        baseline_auc = self.baseline_metrics_folds_list[0][-1]
-        baseline_fpr, baseline_tpr, threshold = roc_curve(self.y_true_folds_list[0], self.baseline_y_pred_loss_folds_list[0])
-        plt.plot(baseline_fpr, baseline_tpr, label='No TTA AUC = {:.3f}'.format(baseline_auc))
+        # # plot roc curve
+        # # skplt.metrics.plot_roc_curve(self.y_true, self.baseline_y_pred)
+        # baseline_auc = self.baseline_metrics_folds_list[0][-1]
+        # baseline_fpr, baseline_tpr, threshold = roc_curve(self.y_true_folds_list[0], self.baseline_y_pred_loss_folds_list[0])
+        # plt.plot(baseline_fpr, baseline_tpr, label='No TTA AUC = {:.3f}'.format(baseline_auc))
 
-        kmeans_regular_knn_tta_auc = self.kmeans_regular_knn_tta_metrics_folds_list[0][-1]
-        kmeans_regular_knn_tta_fpr, kmeans_regular_knn_tta_tpr, threshold = roc_curve(self.y_true_folds_list[0], self.kmeans_regular_knn_tta_y_pred_loss_folds_list[0])
-        plt.plot(kmeans_regular_knn_tta_fpr, kmeans_regular_knn_tta_tpr, label='k-Means Regular-NN TTA AUC = {:.3f}'.format(kmeans_regular_knn_tta_auc))
+        # kmeans_regular_knn_tta_auc = self.kmeans_regular_knn_tta_metrics_folds_list[0][-1]
+        # kmeans_regular_knn_tta_fpr, kmeans_regular_knn_tta_tpr, threshold = roc_curve(self.y_true_folds_list[0], self.kmeans_regular_knn_tta_y_pred_loss_folds_list[0])
+        # plt.plot(kmeans_regular_knn_tta_fpr, kmeans_regular_knn_tta_tpr, label='k-Means Regular-NN TTA AUC = {:.3f}'.format(kmeans_regular_knn_tta_auc))
 
-        kmeans_siamese_knn_tta_auc = self.kmeans_siamese_knn_tta_metrics_folds_list[0][-1] 
-        kmeans_siamese_knn_tta_fpr, kmeans_siamese_knn_tta_tpr, threshold = roc_curve(self.y_true_folds_list[0], self.kmeans_siamese_knn_tta_y_pred_loss_folds_list[0])
-        plt.plot(kmeans_siamese_knn_tta_fpr, kmeans_siamese_knn_tta_tpr, label='k-Means Siamese-NN TTA AUC = {:.3f}'.format(kmeans_siamese_knn_tta_auc))
+        # kmeans_siamese_knn_tta_auc = self.kmeans_siamese_knn_tta_metrics_folds_list[0][-1] 
+        # kmeans_siamese_knn_tta_fpr, kmeans_siamese_knn_tta_tpr, threshold = roc_curve(self.y_true_folds_list[0], self.kmeans_siamese_knn_tta_y_pred_loss_folds_list[0])
+        # plt.plot(kmeans_siamese_knn_tta_fpr, kmeans_siamese_knn_tta_tpr, label='k-Means Siamese-NN TTA AUC = {:.3f}'.format(kmeans_siamese_knn_tta_auc))
         
-        SMOTE_regular_knn_tta_auc = self.SMOTE_regular_knn_tta_metrics_folds_list[0][-1]
-        SMOTE_regular_knn_tta_fpr, SMOTE_regular_knn_tta_tpr, threshold = roc_curve(self.y_true_folds_list[0], self.SMOTE_regular_knn_tta_y_pred_loss_folds_list[0])
-        plt.plot(SMOTE_regular_knn_tta_fpr, SMOTE_regular_knn_tta_tpr, label='SMOTE Regular-NN TTA AUC = {:.3f}'.format(SMOTE_regular_knn_tta_auc))
+        # SMOTE_regular_knn_tta_auc = self.SMOTE_regular_knn_tta_metrics_folds_list[0][-1]
+        # SMOTE_regular_knn_tta_fpr, SMOTE_regular_knn_tta_tpr, threshold = roc_curve(self.y_true_folds_list[0], self.SMOTE_regular_knn_tta_y_pred_loss_folds_list[0])
+        # plt.plot(SMOTE_regular_knn_tta_fpr, SMOTE_regular_knn_tta_tpr, label='SMOTE Regular-NN TTA AUC = {:.3f}'.format(SMOTE_regular_knn_tta_auc))
 
-        SMOTE_siamese_knn_tta_auc = self.SMOTE_siamese_knn_tta_metrics_folds_list[0][-1]
-        SMOTE_siamese_knn_tta_fpr, SMOTE_siamese_knn_tta_tpr, threshold = roc_curve(self.y_true_folds_list[0], self.SMOTE_siamese_knn_tta_y_pred_loss_folds_list[0])
-        plt.plot(SMOTE_siamese_knn_tta_fpr, SMOTE_siamese_knn_tta_tpr, label='SMOTE Siamese-NN TTA AUC = {:.3f}'.format(SMOTE_siamese_knn_tta_auc))
+        # SMOTE_siamese_knn_tta_auc = self.SMOTE_siamese_knn_tta_metrics_folds_list[0][-1]
+        # SMOTE_siamese_knn_tta_fpr, SMOTE_siamese_knn_tta_tpr, threshold = roc_curve(self.y_true_folds_list[0], self.SMOTE_siamese_knn_tta_y_pred_loss_folds_list[0])
+        # plt.plot(SMOTE_siamese_knn_tta_fpr, SMOTE_siamese_knn_tta_tpr, label='SMOTE Siamese-NN TTA AUC = {:.3f}'.format(SMOTE_siamese_knn_tta_auc))
 
-        BorderlineSMOTE_regular_knn_tta_auc = self.BorderlineSMOTE_regular_knn_tta_metrics_folds_list[0][-1]
-        BorderlineSMOTE_regular_knn_tta_fpr, BorderlineSMOTE_regular_knn_tta_tpr, threshold = roc_curve(self.y_true_folds_list[0], self.BorderlineSMOTE_regular_knn_tta_y_pred_loss_folds_list[0])
-        plt.plot(BorderlineSMOTE_regular_knn_tta_fpr, BorderlineSMOTE_regular_knn_tta_tpr, label='BorderlineSMOTE Regular-NN TTA AUC = {:.3f}'.format(BorderlineSMOTE_regular_knn_tta_auc))
+        # BorderlineSMOTE_regular_knn_tta_auc = self.BorderlineSMOTE_regular_knn_tta_metrics_folds_list[0][-1]
+        # BorderlineSMOTE_regular_knn_tta_fpr, BorderlineSMOTE_regular_knn_tta_tpr, threshold = roc_curve(self.y_true_folds_list[0], self.BorderlineSMOTE_regular_knn_tta_y_pred_loss_folds_list[0])
+        # plt.plot(BorderlineSMOTE_regular_knn_tta_fpr, BorderlineSMOTE_regular_knn_tta_tpr, label='BorderlineSMOTE Regular-NN TTA AUC = {:.3f}'.format(BorderlineSMOTE_regular_knn_tta_auc))
 
-        BorderlineSMOTE_siamese_knn_tta_auc = self.BorderlineSMOTE_siamese_knn_tta_metrics_folds_list[0][-1]
-        BorderlineSMOTE_siamese_knn_tta_fpr, BorderlineSMOTE_siamese_knn_tta_tpr, threshold = roc_curve(self.y_true_folds_list[0], self.BorderlineSMOTE_siamese_knn_tta_y_pred_loss_folds_list[0])
-        plt.plot(BorderlineSMOTE_siamese_knn_tta_fpr, BorderlineSMOTE_siamese_knn_tta_tpr, label='BorderlineSMOTE Siamese-NN TTA AUC = {:.3f}'.format(BorderlineSMOTE_siamese_knn_tta_auc))
+        # BorderlineSMOTE_siamese_knn_tta_auc = self.BorderlineSMOTE_siamese_knn_tta_metrics_folds_list[0][-1]
+        # BorderlineSMOTE_siamese_knn_tta_fpr, BorderlineSMOTE_siamese_knn_tta_tpr, threshold = roc_curve(self.y_true_folds_list[0], self.BorderlineSMOTE_siamese_knn_tta_y_pred_loss_folds_list[0])
+        # plt.plot(BorderlineSMOTE_siamese_knn_tta_fpr, BorderlineSMOTE_siamese_knn_tta_tpr, label='BorderlineSMOTE Siamese-NN TTA AUC = {:.3f}'.format(BorderlineSMOTE_siamese_knn_tta_auc))
 
-        plt.plot([0, 1], [0, 1], linestyle='dashed', color='gray')
-        plt.xlim([0, 1])
-        plt.ylim([0, 1])
-        plt.legend(loc='lower right')
-        plt.ylabel("True Positive Rate")
-        plt.xlabel("False Positive Rate")
-        plt.title("ROC Curves")
-        # plt.show()
-        plt.savefig(f"/home/nivgold/plots/{self.dataset_name}_ROC_curve.png")
+        # plt.plot([0, 1], [0, 1], linestyle='dashed', color='gray')
+        # plt.xlim([0, 1])
+        # plt.ylim([0, 1])
+        # plt.legend(loc='lower right')
+        # plt.ylabel("True Positive Rate")
+        # plt.xlabel("False Positive Rate")
+        # plt.title("ROC Curves")
+        # # plt.show()
+        # plt.savefig(f"/home/nivgold/plots/{self.dataset_name}_ROC_curve.png")
