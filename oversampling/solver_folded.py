@@ -33,9 +33,6 @@ class Solver:
         # set percentile thresh
         self.percentile = 80
 
-        # show network architecrute
-        # setup tensorboard
-
         # if knn_data is not None and siamese_data is not None:
         self.train_siamese_model(siamese_data)
         self.train_knn_model(X) 
