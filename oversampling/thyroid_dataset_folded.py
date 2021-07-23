@@ -4,6 +4,7 @@ import numpy as np
 from datetime import datetime
 from sklearn.preprocessing import MinMaxScaler
 from tqdm import tqdm
+from sklearn.ensemble import IsolationForest
 
 
 def reduce_mem_usage(df):
@@ -128,13 +129,20 @@ def get_dataset(data_path, batch_size, from_disk=True):
 
     return thyroid.features_full.values, thyroid.labels_full.values, (thyroid.X_pairs, thyroid.y_pairs)
 
-def generate_pairs(features_full, labels_full):
+def generate_pairs(features_full, labels_full, use_labels=False):
     print(f"features full shape: {features_full.shape}, labels_full shape: {labels_full.shape}")
     data = pd.concat([features_full, labels_full], axis=1)
     label_col = '6'
 
-    normal_data = data[data[label_col] == 0].drop(columns=[label_col], axis=1)
-    anomaly_data = data[data[label_col] == 1].drop(columns=[label_col], axis=1)
+    if use_labels:
+        # using the ground truth to produce the pairs
+        print("Using ground truth for pairs creation")
+        normal_data = data[data[label_col] == 0].drop(columns=[label_col], axis=1)
+        anomaly_data = data[data[label_col] == 1].drop(columns=[label_col], axis=1)
+    else:
+        # using Isolation Forest as label propagating
+        print("Using IF instead of ground truth for pairs creation")
+        normal_data, anomaly_data = label_isolation_forest(features_full)
 
     left_list = []
     right_list = []
@@ -180,3 +188,12 @@ def generate_pairs(features_full, labels_full):
     y = full_df['label'].values
 
     return X, y
+
+def label_isolation_forest(data):
+    data = data.copy()
+    clf = IsolationForest(n_estimators=200, max_samples='auto', contamination=float(.12),
+                          max_features=1.0, bootstrap=False, n_jobs=-1, random_state=42, verbose=0)
+    data['anomaly'] = clf.fit_predict(data)
+    normal_data = data[data['anomaly'] == 1].drop(columns=['anomaly'], axis=1)
+    anomaly_data = data[data['anomaly'] == -1].drop(columns=['anomaly'], axis=1)
+    return normal_data, anomaly_data
