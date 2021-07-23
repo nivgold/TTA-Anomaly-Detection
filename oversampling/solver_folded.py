@@ -497,7 +497,7 @@ class Solver:
         kmeans_regular_precision, kmeans_regular_recall, _ = precision_recall_curve(y_true, kmeans_regular_knn_test_loss)
         kmeans_regular_pr_auc = auc(kmeans_regular_recall, kmeans_regular_precision)
 
-        kmeans_siamese_precision, kmeans_siamese_recall, _ = precision_recall_curve(y_true, kmeans_regular_knn_test_loss)
+        kmeans_siamese_precision, kmeans_siamese_recall, _ = precision_recall_curve(y_true, kmeans_siamese_knn_test_loss)
         kmeans_siamese_pr_auc = auc(kmeans_siamese_recall, kmeans_siamese_precision)
 
         SMOTE_regular_precision, SMOTE_regular_recall, _ = precision_recall_curve(y_true, SMOTE_regular_knn_tta_test_loss)
@@ -620,8 +620,8 @@ class Solver:
         for i in range(len(self.baseline_metrics_folds_list.mean(axis=0))):
             print_list.append(self.baseline_metrics_folds_list.mean(axis=0)[i])
             print_list.append(self.baseline_metrics_folds_list.std(axis=0)[i])
-        # print("Accuracy : {:0.4f}+-{:0.4f}, Precision : {:0.4f}+-{:0.4f}, Recall : {:0.4f}+-{:0.4f}, F-score : {:0.4f}+-{:0.4f}, AUC : {:0.4f}+-{:0.4f}".format(*print_list))
-        print("Accuracy : {:0.4f}+-{:0.4f}, PR-AUC : {:0.4f}+-{:0.4f}, Precision@10 : {:0.4f}+-{:0.4f}, F-score : {:0.4f}+-{:0.4f}, AUC : {:0.4f}+-{:0.4f}".format(*print_list))
+        # print("Accuracy : {:0.3f}+-{:0.3f}, Precision : {:0.3f}+-{:0.3f}, Recall : {:0.3f}+-{:0.3f}, F-score : {:0.3f}+-{:0.3f}, AUC : {:0.3f}+-{:0.3f}".format(*print_list))
+        print("Accuracy : {:0.3f}+-{:0.3f}, PR-AUC : {:0.3f}+-{:0.3f}, Precision@10 : {:0.3f}+-{:0.3f}, F-score : {:0.3f}+-{:0.3f}, AUC : {:0.3f}+-{:0.3f}".format(*print_list))
 
         print("*"*100)
         print("---- Gaussian-Noise TTA Test ----")
@@ -629,8 +629,8 @@ class Solver:
         for i in range(len(self.gaussian_tta_metrics_folds_list.mean(axis=0))):
             print_list.append(self.gaussian_tta_metrics_folds_list.mean(axis=0)[i])
             print_list.append(self.gaussian_tta_metrics_folds_list.std(axis=0)[i])
-        # print("Accuracy : {:0.4f}+-{:0.4f}, Precision : {:0.4f}+-{:0.4f}, Recall : {:0.4f}+-{:0.4f}, F-score : {:0.4f}+-{:0.4f}, AUC : {:0.4f}+-{:0.4f}".format(*print_list))
-        print("Accuracy : {:0.4f}+-{:0.4f}, PR-AUC : {:0.4f}+-{:0.4f}, Precision@10 : {:0.4f}+-{:0.4f}, F-score : {:0.4f}+-{:0.4f}, AUC : {:0.4f}+-{:0.4f}".format(*print_list))
+        # print("Accuracy : {:0.3f}+-{:0.3f}, Precision : {:0.3f}+-{:0.3f}, Recall : {:0.3f}+-{:0.3f}, F-score : {:0.3f}+-{:0.3f}, AUC : {:0.3f}+-{:0.3f}".format(*print_list))
+        print("Accuracy : {:0.3f}+-{:0.3f}, PR-AUC : {:0.3f}+-{:0.3f}, Precision@10 : {:0.3f}+-{:0.3f}, F-score : {:0.3f}+-{:0.3f}, AUC : {:0.3f}+-{:0.3f}".format(*print_list))
 
         print("*"*100)
         print("---- SMOTE Regular-KNN TTA Test ----")
@@ -638,8 +638,8 @@ class Solver:
         for i in range(len(self.SMOTE_regular_knn_tta_metrics_folds_list.mean(axis=0))):
             print_list.append(self.SMOTE_regular_knn_tta_metrics_folds_list.mean(axis=0)[i])
             print_list.append(self.SMOTE_regular_knn_tta_metrics_folds_list.std(axis=0)[i])
-        # print("Accuracy : {:0.4f}+-{:0.4f}, Precision : {:0.4f}+-{:0.4f}, Recall : {:0.4f}+-{:0.4f}, F-score : {:0.4f}+-{:0.4f}, AUC : {:0.4f}+-{:0.4f}".format(*print_list))
-        print("Accuracy : {:0.4f}+-{:0.4f}, PR-AUC : {:0.4f}+-{:0.4f}, Precision@10 : {:0.4f}+-{:0.4f}, F-score : {:0.4f}+-{:0.4f}, AUC : {:0.4f}+-{:0.4f}".format(*print_list))
+        # print("Accuracy : {:0.3f}+-{:0.3f}, Precision : {:0.3f}+-{:0.3f}, Recall : {:0.3f}+-{:0.3f}, F-score : {:0.3f}+-{:0.3f}, AUC : {:0.3f}+-{:0.3f}".format(*print_list))
+        print("Accuracy : {:0.3f}+-{:0.3f}, PR-AUC : {:0.3f}+-{:0.3f}, Precision@10 : {:0.3f}+-{:0.3f}, F-score : {:0.3f}+-{:0.3f}, AUC : {:0.3f}+-{:0.3f}".format(*print_list))
 
         print("*"*100)
         print("---- SMOTE Siamese-KNN TTA Test ----")
@@ -647,8 +647,8 @@ class Solver:
         for i in range(len(self.SMOTE_siamese_knn_tta_metrics_folds_list.mean(axis=0))):
             print_list.append(self.SMOTE_siamese_knn_tta_metrics_folds_list.mean(axis=0)[i])
             print_list.append(self.SMOTE_siamese_knn_tta_metrics_folds_list.std(axis=0)[i])
-        # print("Accuracy : {:0.4f}+-{:0.4f}, Precision : {:0.4f}+-{:0.4f}, Recall : {:0.4f}+-{:0.4f}, F-score : {:0.4f}+-{:0.4f}, AUC : {:0.4f}+-{:0.4f}".format(*print_list))
-        print("Accuracy : {:0.4f}+-{:0.4f}, PR-AUC : {:0.4f}+-{:0.4f}, Precision@10 : {:0.4f}+-{:0.4f}, F-score : {:0.4f}+-{:0.4f}, AUC : {:0.4f}+-{:0.4f}".format(*print_list))
+        # print("Accuracy : {:0.3f}+-{:0.3f}, Precision : {:0.3f}+-{:0.3f}, Recall : {:0.3f}+-{:0.3f}, F-score : {:0.3f}+-{:0.3f}, AUC : {:0.3f}+-{:0.3f}".format(*print_list))
+        print("Accuracy : {:0.3f}+-{:0.3f}, PR-AUC : {:0.3f}+-{:0.3f}, Precision@10 : {:0.3f}+-{:0.3f}, F-score : {:0.3f}+-{:0.3f}, AUC : {:0.3f}+-{:0.3f}".format(*print_list))
 
         print("*"*100)
         print("---- Borderline-SMOTE Regular-KNN TTA Test ----")
@@ -656,8 +656,8 @@ class Solver:
         for i in range(len(self.BorderlineSMOTE_regular_knn_tta_metrics_folds_list.mean(axis=0))):
             print_list.append(self.BorderlineSMOTE_regular_knn_tta_metrics_folds_list.mean(axis=0)[i])
             print_list.append(self.BorderlineSMOTE_regular_knn_tta_metrics_folds_list.std(axis=0)[i])
-        # print("Accuracy : {:0.4f}+-{:0.4f}, Precision : {:0.4f}+-{:0.4f}, Recall : {:0.4f}+-{:0.4f}, F-score : {:0.4f}+-{:0.4f}, AUC : {:0.4f}+-{:0.4f}".format(*print_list))
-        print("Accuracy : {:0.4f}+-{:0.4f}, PR-AUC : {:0.4f}+-{:0.4f}, Precision@10 : {:0.4f}+-{:0.4f}, F-score : {:0.4f}+-{:0.4f}, AUC : {:0.4f}+-{:0.4f}".format(*print_list))
+        # print("Accuracy : {:0.3f}+-{:0.3f}, Precision : {:0.3f}+-{:0.3f}, Recall : {:0.3f}+-{:0.3f}, F-score : {:0.3f}+-{:0.3f}, AUC : {:0.3f}+-{:0.3f}".format(*print_list))
+        print("Accuracy : {:0.3f}+-{:0.3f}, PR-AUC : {:0.3f}+-{:0.3f}, Precision@10 : {:0.3f}+-{:0.3f}, F-score : {:0.3f}+-{:0.3f}, AUC : {:0.3f}+-{:0.3f}".format(*print_list))
         
         print("*"*100)
         print("---- Borderline-SMOTE Siamese-KNN TTA Test ----")
@@ -665,8 +665,8 @@ class Solver:
         for i in range(len(self.BorderlineSMOTE_siamese_knn_tta_metrics_folds_list.mean(axis=0))):
             print_list.append(self.BorderlineSMOTE_siamese_knn_tta_metrics_folds_list.mean(axis=0)[i])
             print_list.append(self.BorderlineSMOTE_siamese_knn_tta_metrics_folds_list.std(axis=0)[i])
-        # print("Accuracy : {:0.4f}+-{:0.4f}, Precision : {:0.4f}+-{:0.4f}, Recall : {:0.4f}+-{:0.4f}, F-score : {:0.4f}+-{:0.4f}, AUC : {:0.4f}+-{:0.4f}".format(*print_list))
-        print("Accuracy : {:0.4f}+-{:0.4f}, PR-AUC : {:0.4f}+-{:0.4f}, Precision@10 : {:0.4f}+-{:0.4f}, F-score : {:0.4f}+-{:0.4f}, AUC : {:0.4f}+-{:0.4f}".format(*print_list))
+        # print("Accuracy : {:0.3f}+-{:0.3f}, Precision : {:0.3f}+-{:0.3f}, Recall : {:0.3f}+-{:0.3f}, F-score : {:0.3f}+-{:0.3f}, AUC : {:0.3f}+-{:0.3f}".format(*print_list))
+        print("Accuracy : {:0.3f}+-{:0.3f}, PR-AUC : {:0.3f}+-{:0.3f}, Precision@10 : {:0.3f}+-{:0.3f}, F-score : {:0.3f}+-{:0.3f}, AUC : {:0.3f}+-{:0.3f}".format(*print_list))
 
         print("*"*100)
         print("---- k-Means TTA Regular-KNN Test ----")
@@ -674,8 +674,8 @@ class Solver:
         for i in range(len(self.kmeans_regular_knn_tta_metrics_folds_list.mean(axis=0))):
             print_list.append(self.kmeans_regular_knn_tta_metrics_folds_list.mean(axis=0)[i])
             print_list.append(self.kmeans_regular_knn_tta_metrics_folds_list.std(axis=0)[i])
-        # print("Accuracy : {:0.4f}+-{:0.4f}, Precision : {:0.4f}+-{:0.4f}, Recall : {:0.4f}+-{:0.4f}, F-score : {:0.4f}+-{:0.4f}, AUC : {:0.4f}+-{:0.4f}".format(*print_list))
-        print("Accuracy : {:0.4f}+-{:0.4f}, PR-AUC : {:0.4f}+-{:0.4f}, Precision@10 : {:0.4f}+-{:0.4f}, F-score : {:0.4f}+-{:0.4f}, AUC : {:0.4f}+-{:0.4f}".format(*print_list))
+        # print("Accuracy : {:0.3f}+-{:0.3f}, Precision : {:0.3f}+-{:0.3f}, Recall : {:0.3f}+-{:0.3f}, F-score : {:0.3f}+-{:0.3f}, AUC : {:0.3f}+-{:0.3f}".format(*print_list))
+        print("Accuracy : {:0.3f}+-{:0.3f}, PR-AUC : {:0.3f}+-{:0.3f}, Precision@10 : {:0.3f}+-{:0.3f}, F-score : {:0.3f}+-{:0.3f}, AUC : {:0.3f}+-{:0.3f}".format(*print_list))
 
         print("*"*100)
         print("---- k-Means TTA Siamese-KNN Test ----")
@@ -683,8 +683,8 @@ class Solver:
         for i in range(len(self.kmeans_siamese_knn_tta_metrics_folds_list.mean(axis=0))):
             print_list.append(self.kmeans_siamese_knn_tta_metrics_folds_list.mean(axis=0)[i])
             print_list.append(self.kmeans_siamese_knn_tta_metrics_folds_list.std(axis=0)[i])
-        # print("Accuracy : {:0.4f}+-{:0.4f}, Precision : {:0.4f}+-{:0.4f}, Recall : {:0.4f}+-{:0.4f}, F-score : {:0.4f}+-{:0.4f}, AUC : {:0.4f}+-{:0.4f}".format(*print_list))
-        print("Accuracy : {:0.4f}+-{:0.4f}, PR-AUC : {:0.4f}+-{:0.4f}, Precision@10 : {:0.4f}+-{:0.4f}, F-score : {:0.4f}+-{:0.4f}, AUC : {:0.4f}+-{:0.4f}".format(*print_list))
+        # print("Accuracy : {:0.3f}+-{:0.3f}, Precision : {:0.3f}+-{:0.3f}, Recall : {:0.3f}+-{:0.3f}, F-score : {:0.3f}+-{:0.3f}, AUC : {:0.3f}+-{:0.3f}".format(*print_list))
+        print("Accuracy : {:0.3f}+-{:0.3f}, PR-AUC : {:0.3f}+-{:0.3f}, Precision@10 : {:0.3f}+-{:0.3f}, F-score : {:0.3f}+-{:0.3f}, AUC : {:0.3f}+-{:0.3f}".format(*print_list))
         print("*"*100)
 
         # # plot roc curve
