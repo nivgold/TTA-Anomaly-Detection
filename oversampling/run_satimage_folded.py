@@ -14,7 +14,7 @@ import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument("-n", "--neighbors", dest="num_neighbors", default=10, type=int, help="The number of neighbors to retrieve from the Neareset Neighbors model")
 parser.add_argument("-a", "--augmentations", dest="num_augmentations", default=4, type=int, help="The number test-time augmentations to apply on every test sample")
-parser.add_argument("-f", "--folds", dest="n_folds", default=5, type=int, help="The number of folds in the K-Fold cross-validation")
+parser.add_argument("-f", "--folds", dest="n_folds", default=10, type=int, help="The number of folds in the K-Fold cross-validation")
 args = parser.parse_args()
 
 def get_execute_time(start_time, end_time):
