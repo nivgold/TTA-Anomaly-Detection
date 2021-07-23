@@ -14,6 +14,9 @@ import vowels_dataset_folded as vomd
 import yeast_dataset_folded as yemd
 import satimage_dataset_folded as satmd
 import shuttle_dataset_folded as shmd
+import seismic_dataset_folded as seismd
+import musk_dataset_folded as muskmd
+import annthyroid_dataset_folded as annmd
 
 import numpy as np
 import pandas as pd
@@ -42,6 +45,9 @@ DATA_PATH_VOWELS = '/home/nivgold/datasets/Vowels'
 DATA_PATH_YEAST = '/home/nivgold/datasets/Yeast'
 DATA_PATH_SATIMAGE = '/home/nivgold/datasets/Satimage'
 DATA_PATH_SHUTTLE = '/home/nivgold/datasets/Shuttle'
+DATA_PATH_SEISMIC = '/home/nivgold/datasets/Seismic'
+DATA_PATH_MUSK = '/home/nivgold/datasets/Musk'
+DATA_PATH_ANNTHYROID = '/home/nivgold/datasets/Annthyroid'
 
 # ----------------------------------------------------------------------------------------------------------------------
 
@@ -285,5 +291,62 @@ DATA_PATH_SHUTTLE = '/home/nivgold/datasets/Shuttle'
 
 # print("X full shape: ", shuttle.features_full.shape)
 # print("Y full shape", shuttle.labels_full.shape)
+
+# ----------------------------------------------------------------------------------------------------------------------
+
+# # Creating Seismic Pkls
+# seismic = seismd.SeismicDataset(DATA_PATH_SEISMIC, from_disk=False)
+
+# seismic = seismd.SeismicDataset(DATA_PATH_SEISMIC, from_disk=True)
+
+# print("X_pairs shape: ", seismic.X_pairs.shape)
+# print("y_pairs shape: ", seismic.y_pairs.shape)
+
+# print("X train shape: ", seismic.train_features.shape)
+# print("Y train shape: ", seismic.train_labels.shape)
+
+# print("X test shape: ", seismic.test_features.shape)
+# print("Y test shape: ", seismic.test_labels.shape)
+
+# print("X full shape: ", seismic.features_full.shape)
+# print("Y full shape", seismic.labels_full.shape)
+
+# ----------------------------------------------------------------------------------------------------------------------
+
+# # Creating Musk Pkls
+# musk = muskmd.MuskDataset(DATA_PATH_MUSK, from_disk=False)
+
+# musk = muskmd.MuskDataset(DATA_PATH_MUSK, from_disk=True)
+
+# print("X_pairs shape: ", musk.X_pairs.shape)
+# print("y_pairs shape: ", musk.y_pairs.shape)
+
+# print("X train shape: ", musk.train_features.shape)
+# print("Y train shape: ", musk.train_labels.shape)
+
+# print("X test shape: ", musk.test_features.shape)
+# print("Y test shape: ", musk.test_labels.shape)
+
+# print("X full shape: ", musk.features_full.shape)
+# print("Y full shape", musk.labels_full.shape)
+
+# ----------------------------------------------------------------------------------------------------------------------
+
+# # Creating Annthyroid Pkls
+# annthyroid = annmd.AnnthyroidDataset(DATA_PATH_ANNTHYROID, from_disk=False)
+
+# annthyroid = annmd.AnnthyroidDataset(DATA_PATH_ANNTHYROID, from_disk=True)
+
+# print("X_pairs shape: ", annthyroid.X_pairs.shape)
+# print("y_pairs shape: ", annthyroid.y_pairs.shape)
+
+# print("X train shape: ", annthyroid.train_features.shape)
+# print("Y train shape: ", annthyroid.train_labels.shape)
+
+# print("X test shape: ", annthyroid.test_features.shape)
+# print("Y test shape: ", annthyroid.test_labels.shape)
+
+# print("X full shape: ", annthyroid.features_full.shape)
+# print("Y full shape", annthyroid.labels_full.shape)
 
 # ----------------------------------------------------------------------------------------------------------------------
